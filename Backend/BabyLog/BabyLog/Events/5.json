@@ -1,0 +1,18 @@
+{
+  "id": 5,
+  "title": "第一次游泳",
+  "description": "带宝宝去婴儿游泳馆，第一次下水有点紧张",
+  "media": {
+    "images": [
+      { "fileName": "swimming_1.jpg", "desc": "准备下水的紧张表情" },
+      { "fileName": "swimming_2.jpg", "desc": "在水中的可爱模样" },
+      { "fileName": "swimming_3.jpg", "desc": "游泳后的满足表情" }
+    ],
+    "videos": [
+      { "fileName": "first_swim.mp4", "desc": "第一次下水的视频" }
+    ],
+    "audios": []
+  },
+  "date": "2025-08-25",
+  "location": "婴儿游泳馆"
+}

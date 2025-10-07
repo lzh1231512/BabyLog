@@ -1,0 +1,30 @@
+﻿{
+  "Id": 9,
+  "Title": "test33",
+  "Description": "dsfdsf sdfd",
+  "Media": {
+    "Images": [
+      {
+        "FileName": "20251007150522582_nqpsgz.png",
+        "Desc": "tttt"
+      },
+      {
+        "FileName": "20251007150553472_4bynib.png",
+        "Desc": "test2"
+      },
+      {
+        "FileName": "20251007151429780_k2hqsf.png",
+        "Desc": "ttt3"
+      }
+    ],
+    "Videos": [
+      {
+        "FileName": "20251007151456588_plpk0w.mp4",
+        "Desc": ""
+      }
+    ],
+    "Audios": []
+  },
+  "Date": "2026-10-21",
+  "Location": "gg"
+}

@@ -1,0 +1,21 @@
+{
+  "id": 6,
+  "title": "开始吃辅食",
+  "description": "第一次尝试米糊，表情很有趣",
+  "media": {
+    "images": [
+      { "fileName": "first_food_1.jpg", "desc": "第一口米糊的表情" },
+      { "fileName": "first_food_2.jpg", "desc": "吃得满脸都是" },
+      { "fileName": "first_food_3.jpg", "desc": "似乎很喜欢的样子" },
+      { "fileName": "first_food_4.jpg", "desc": "用手抓食物探索" }
+    ],
+    "videos": [
+      { "fileName": "first_feeding.mp4", "desc": "第一次喂辅食的过程" }
+    ],
+    "audios": [
+      { "fileName": "eating_sounds.mp3", "desc": "吃东西时的可爱声音" }
+    ]
+  },
+  "date": "2025-10-01",
+  "location": "家里"
+}
