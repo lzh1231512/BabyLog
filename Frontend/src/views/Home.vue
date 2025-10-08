@@ -79,15 +79,18 @@
               @click="viewEvent(event)"
             >
               <div class="event-photos">
-                <div 
+                <LazyImage
                   v-for="(image, photoIndex) in event.media.images.slice(0, 4)" 
                   :key="photoIndex"
-                  class="photo-placeholder"
+                  :src="getMediaUrl(event.id, image.fileName)"
+                  :alt="`${event.title} - 图片${photoIndex + 1}`"
+                  :small="event.media.images.length > 1"
+                  :preload="shouldPreloadImage(index, photoIndex)"
+                  :priority="getImagePriority(index, photoIndex)"
+                  :threshold="loadingStrategy.threshold"
+                  class="photo-item"
                   :class="{ 'small': event.media.images.length > 1 }"
-                  :style="{ backgroundImage: `url(${getMediaUrl(event.id, image.fileName)})` }"
-                >
-                  <span v-if="!image.fileName" class="photo-icon">📷</span>
-                </div>
+                />
                 <div v-if="event.media.images.length > 4" class="more-photos">
                   +{{ event.media.images.length - 4 }}
                 </div>
@@ -113,6 +116,9 @@
     <button class="fab" @click="addEvent">
       ➕
     </button>
+
+    <!-- 性能监控面板（仅开发环境） -->
+    <PerformancePanel />
   </div>
 </template>
 
@@ -121,9 +127,17 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import dayjs from 'dayjs'
 import { getEventsList, getStats, getMediaUrl } from '@/api/events'
+import LazyImage from '@/components/LazyImage.vue'
+import PerformancePanel from '@/components/PerformancePanel.vue'
+import { preloadEventImages } from '@/utils/imageUtils'
+import { adaptiveImageLoader } from '@/utils/imagePerformance'
 
 export default {
   name: 'HomePage',
+  components: {
+    LazyImage,
+    PerformancePanel
+  },
   setup() {
     const router = useRouter()
     const route = useRoute()
@@ -191,6 +205,9 @@ export default {
       totalAudios: 0
     })
 
+    // 获取自适应加载策略
+    const loadingStrategy = adaptiveImageLoader.getLoadingStrategy()
+
     // 加载事件列表
     const loadEventsList = async () => {
       try {
@@ -200,6 +217,12 @@ export default {
         const response = await getEventsList()
         if (response.success) {
           timelinePeriods.value = response.data
+          
+          // 预加载关键图片（根据网络情况调整数量）
+          const allEvents = response.data.flatMap(period => period.events)
+          if (allEvents.length > 0 && loadingStrategy.enablePreload) {
+            preloadEventImages(allEvents, loadingStrategy.preloadCount, getMediaUrl)
+          }
         } else {
           error.value = response.message || '获取事件列表失败'
         }
@@ -272,6 +295,26 @@ export default {
       console.log('排序方式改变:', sortAscending.value ? '正序' : '倒序')
       // 保存用户的排序偏好到localStorage
       saveSortPreference(sortAscending.value)
+    }
+
+    // 判断是否应该预加载图片
+    const shouldPreloadImage = (eventIndex, photoIndex) => {
+      // 为前2个事件的第一张图片启用预加载
+      return eventIndex < 2 && photoIndex === 0
+    }
+
+    // 获取图片加载优先级
+    const getImagePriority = (eventIndex, photoIndex) => {
+      // 前3个事件的第一张图片为高优先级
+      if (eventIndex < 3 && photoIndex === 0) {
+        return 'high'
+      }
+      // 前6个事件的其他图片为普通优先级
+      if (eventIndex < 6) {
+        return 'normal'
+      }
+      // 其余为低优先级
+      return 'low'
     }
 
     // 自动定位到指定事件
@@ -387,7 +430,10 @@ export default {
       getMediaUrl,
       scrollToEvent,
       findLatestEventId,
-      findClosestEventId
+      findClosestEventId,
+      shouldPreloadImage,
+      getImagePriority,
+      loadingStrategy
     }
   }
 }
@@ -618,26 +664,14 @@ export default {
   gap: 5px;
 }
 
-.photo-placeholder {
-  background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  color: white;
-  border-radius: 8px;
+.photo-item {
   flex: 1;
   min-height: 60px;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
-.photo-icon {
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-.photo-placeholder.small {
+.photo-item.small {
   max-width: 48%;
   max-height: 65px;
 }
