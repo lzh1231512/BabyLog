@@ -200,49 +200,65 @@ namespace BabyLog.Controllers
 
                 string filePath = null;
                 string contentType = null;
+                string fileNameToUse = fileName;
+                bool isVideoFile = IsVideoFile(fileName);
+
+                // If thumbnail is requested for a video, we need to look for a PNG file
+                if (thumbnail && isVideoFile)
+                {
+                    fileNameToUse = Path.GetFileNameWithoutExtension(fileName) + ".png";
+                }
 
                 // First check if thumbnail is requested and exists
                 if (thumbnail && id.HasValue)
                 {
                     var thumbnailDirectory = Path.Combine(_env.ContentRootPath, "Thumbnail", id.Value.ToString());
-                    var thumbnailPath = Path.Combine(thumbnailDirectory, fileName);
+                    var thumbnailPath = Path.Combine(thumbnailDirectory, fileNameToUse);
                     if (System.IO.File.Exists(thumbnailPath))
                     {
                         filePath = thumbnailPath;
-                        contentType = GetContentType(fileName);
+                        contentType = GetContentType(fileNameToUse);
                     }
                 }
 
                 // If no thumbnail found, check for original file
                 if (filePath == null)
                 {
+                    // Reset to original filename for finding the source file
+                    fileNameToUse = fileName;
+                    
                     // Check TempFile directory
-                    var tempFilePath = Path.Combine(_env.ContentRootPath, "TempFile", fileName);
+                    var tempFilePath = Path.Combine(_env.ContentRootPath, "TempFile", fileNameToUse);
                     if (System.IO.File.Exists(tempFilePath))
                     {
                         filePath = tempFilePath;
-                        contentType = GetContentType(fileName);
+                        contentType = GetContentType(fileNameToUse);
                     }
                     // If not found and id is provided, check the Events directory
                     else if (id.HasValue)
                     {
-                        var eventsFilePath = Path.Combine(_env.ContentRootPath, "Events", id.Value.ToString(), fileName);
+                        var eventsFilePath = Path.Combine(_env.ContentRootPath, "Events", id.Value.ToString(), fileNameToUse);
                         if (System.IO.File.Exists(eventsFilePath))
                         {
                             filePath = eventsFilePath;
-                            contentType = GetContentType(fileName);
+                            contentType = GetContentType(fileNameToUse);
                         }
                     }
 
                     // Generate thumbnail if requested for image/video files
-                    if (filePath != null && thumbnail && id.HasValue && IsMediaFile(fileName))
+                    if (filePath != null && thumbnail && id.HasValue && IsMediaFile(fileNameToUse))
                     {
                         try
                         {
                             var thumbnailDirectory = Path.Combine(_env.ContentRootPath, "Thumbnail", id.Value.ToString());
                             Directory.CreateDirectory(thumbnailDirectory);
                             
-                            var thumbnailPath = Path.Combine(thumbnailDirectory, fileName);
+                            // For videos, use .png extension for the thumbnail
+                            string thumbnailFileName = isVideoFile 
+                                ? Path.GetFileNameWithoutExtension(fileNameToUse) + ".png"
+                                : fileNameToUse;
+                                
+                            var thumbnailPath = Path.Combine(thumbnailDirectory, thumbnailFileName);
                             
                             // Generate thumbnail if it doesn't exist
                             if (!System.IO.File.Exists(thumbnailPath))
@@ -254,11 +270,12 @@ namespace BabyLog.Controllers
                             if (System.IO.File.Exists(thumbnailPath))
                             {
                                 filePath = thumbnailPath;
+                                contentType = GetContentType(thumbnailFileName);
                             }
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, $"Error generating thumbnail for {fileName}");
+                            _logger.LogError(ex, $"Error generating thumbnail for {fileNameToUse}");
                             // Continue with original file if thumbnail generation fails
                         }
                     }
@@ -271,7 +288,7 @@ namespace BabyLog.Controllers
                     
                     // Return the file
                     var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
-                    return File(fileStream, contentType, fileName);
+                    return File(fileStream, contentType, Path.GetFileName(filePath));
                 }
 
                 return NotFound(new ApiResponse<object>
@@ -293,6 +310,12 @@ namespace BabyLog.Controllers
             }
         }
 
+        private bool IsVideoFile(string fileName)
+        {
+            var ext = Path.GetExtension(fileName).ToLowerInvariant();
+            return ext == ".mp4" || ext == ".mov";
+        }
+
         private bool IsMediaFile(string fileName)
         {
             var ext = Path.GetExtension(fileName).ToLowerInvariant();
@@ -306,9 +329,9 @@ namespace BabyLog.Controllers
 
         private void GenerateThumbnail(string sourceFilePath, string targetFilePath)
         {
-            var ext = Path.GetExtension(sourceFilePath).ToLowerInvariant();
+            var sourceExt = Path.GetExtension(sourceFilePath).ToLowerInvariant();
             
-            if (ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".gif" || ext == ".webp")
+            if (sourceExt == ".jpg" || sourceExt == ".jpeg" || sourceExt == ".png" || sourceExt == ".gif" || sourceExt == ".webp")
             {
                 // Generate thumbnail for images
                 using var image = Image.Load(sourceFilePath);
@@ -322,14 +345,14 @@ namespace BabyLog.Controllers
                 
                 image.Save(targetFilePath);
             }
-            else if (ext == ".mp4" || ext == ".mov")
+            else if (sourceExt == ".mp4" || sourceExt == ".mov")
             {
-                // For video files - extract a frame and save as thumbnail
+                // For video files - extract a frame and save as PNG thumbnail
                 try
                 {
-                    // Generate a thumbnail image at the 10% position of the video
+                    // Generate a thumbnail image at 1 second into the video
                     FFMpeg.Snapshot(sourceFilePath, targetFilePath, new System.Drawing.Size(300, 300), 
-                        TimeSpan.FromSeconds(1)); // Take snapshot from 1 second in
+                        TimeSpan.FromSeconds(1));
                 }
                 catch (Exception ex)
                 {

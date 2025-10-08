@@ -79,20 +79,24 @@
               @click="viewEvent(event)"
             >
               <div class="event-photos">
+                <!-- 显示图片 -->
                 <LazyImage
-                  v-for="(image, photoIndex) in event.media.images.slice(0, 4)" 
-                  :key="photoIndex"
-                  :src="getMediaUrl(event.id, image.fileName,true)"
-                  :alt="`${event.title} - 图片${photoIndex + 1}`"
-                  :small="event.media.images.length > 1"
+                  v-for="(image, photoIndex) in getAllMediaItems(event).slice(0, 4)" 
+                  :key="`${image.type}-${photoIndex}`"
+                  :src="getMediaUrl(event.id, image.fileName, true)"
+                  :alt="`${event.title} - ${image.type === 'video' ? '视频' : '图片'}${photoIndex + 1}`"
+                  :small="getAllMediaItems(event).length > 1"
                   :preload="shouldPreloadImage(index, photoIndex)"
                   :priority="getImagePriority(index, photoIndex)"
                   :threshold="loadingStrategy.threshold"
                   class="photo-item"
-                  :class="{ 'small': event.media.images.length > 1 }"
+                  :class="{ 
+                    'small': getAllMediaItems(event).length > 1,
+                    'video-thumbnail': image.type === 'video'
+                  }"
                 />
-                <div v-if="event.media.images.length > 4" class="more-photos">
-                  +{{ event.media.images.length - 4 }}
+                <div v-if="getAllMediaItems(event).length > 4" class="more-photos">
+                  +{{ getAllMediaItems(event).length - 4 }}
                 </div>
               </div>
               <div class="event-info">
@@ -317,6 +321,33 @@ export default {
       return 'low'
     }
 
+    // 获取所有媒体项目（图片和视频缩略图）
+    const getAllMediaItems = (event) => {
+      const allMedia = []
+      
+      // 添加图片
+      if (event.media.images && event.media.images.length > 0) {
+        event.media.images.forEach(image => {
+          allMedia.push({
+            ...image,
+            type: 'image'
+          })
+        })
+      }
+      
+      // 添加视频（作为缩略图显示）
+      if (event.media.videos && event.media.videos.length > 0) {
+        event.media.videos.forEach(video => {
+          allMedia.push({
+            ...video,
+            type: 'video'
+          })
+        })
+      }
+      
+      return allMedia
+    }
+
     // 自动定位到指定事件
     const scrollToEvent = async (eventId) => {
       await nextTick()
@@ -433,6 +464,7 @@ export default {
       findClosestEventId,
       shouldPreloadImage,
       getImagePriority,
+      getAllMediaItems,
       loadingStrategy
     }
   }
@@ -674,6 +706,28 @@ export default {
 .photo-item.small {
   max-width: 48%;
   max-height: 65px;
+}
+
+.photo-item.video-thumbnail {
+  position: relative;
+}
+
+.photo-item.video-thumbnail::after {
+  content: '▶️';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  pointer-events: none;
 }
 
 .more-photos {
