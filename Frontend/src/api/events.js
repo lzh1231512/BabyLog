@@ -195,9 +195,11 @@ export const uploadFiles = async (files) => {
 /**
  * 获取媒体文件下载URL
  */
-export const getMediaUrl = (id, fileName) => {
+export const getMediaUrl = (id, fileName, thumbnail) => {
+  if(!thumbnail)
+    thumbnail = false
   const baseURL = process.env.VUE_APP_API_BASE_URL || 'http://localhost:5097'
-  return `${baseURL}/api/Files/download?id=${encodeURIComponent(id)}&fileName=${encodeURIComponent(fileName)}`
+  return `${baseURL}/api/Files/download?id=${encodeURIComponent(id)}&fileName=${encodeURIComponent(fileName)}&thumbnail=${thumbnail}`
 }
 
 /**

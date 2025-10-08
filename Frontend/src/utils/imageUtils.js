@@ -102,7 +102,7 @@ export const preloadEventImages = (events, priorityCount = 10, getMediaUrl) => {
       const firstImage = event.media.images[0]
       if (firstImage?.fileName) {
         imagesToPreload.push({
-          src: getMediaUrl(event.id, firstImage.fileName),
+          src: getMediaUrl(event.id, firstImage.fileName,true),
           priority: 'high'
         })
       }
@@ -115,7 +115,7 @@ export const preloadEventImages = (events, priorityCount = 10, getMediaUrl) => {
       event.media.images.slice(1, 3).forEach(image => {
         if (image?.fileName && imagesToPreload.length < priorityCount) {
           imagesToPreload.push({
-            src: getMediaUrl(event.id, image.fileName),
+            src: getMediaUrl(event.id, image.fileName,true),
             priority: 'low'
           })
         }

@@ -82,7 +82,7 @@
                 <LazyImage
                   v-for="(image, photoIndex) in event.media.images.slice(0, 4)" 
                   :key="photoIndex"
-                  :src="getMediaUrl(event.id, image.fileName)"
+                  :src="getMediaUrl(event.id, image.fileName,true)"
                   :alt="`${event.title} - 图片${photoIndex + 1}`"
                   :small="event.media.images.length > 1"
                   :preload="shouldPreloadImage(index, photoIndex)"
