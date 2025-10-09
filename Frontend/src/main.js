@@ -1,5 +1,7 @@
 import { createApp } from 'vue'
 import App from './App.vue'
-import router from './router'
-
-createApp(App).use(router).mount('#app')
+import {loadConfig} from './config'
+loadConfig().then(async () => {
+  const router = await import('./router/index').then(m => m.default);
+  createApp(App).use(router).mount('#app')
+})

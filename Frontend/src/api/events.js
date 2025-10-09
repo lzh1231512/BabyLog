@@ -1,9 +1,9 @@
 // 事件相关的API接口
 import axios from 'axios'
-
+import config from '../config'
 // API配置
 const API_CONFIG = {
-  baseURL: process.env.VUE_APP_API_BASE_URL || 'http://localhost:5097',
+  baseURL: config.API_BASE_URL || 'http://localhost:5097',
   timeout: 10000,
 }
 
@@ -198,7 +198,7 @@ export const uploadFiles = async (files) => {
 export const getMediaUrl = (id, fileName, thumbnail) => {
   if(!thumbnail)
     thumbnail = false
-  const baseURL = process.env.VUE_APP_API_BASE_URL || 'http://localhost:5097'
+  const baseURL = config.API_BASE_URL || 'http://localhost:5097'
   return `${baseURL}/api/Files/download?id=${encodeURIComponent(id)}&fileName=${encodeURIComponent(fileName)}&thumbnail=${thumbnail}`
 }
 

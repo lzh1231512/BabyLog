@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import EventDetail from '../views/EventDetail.vue'
 import AddEditEvent from '../views/AddEditEvent.vue'
-
+import config from '../config'
 const routes = [
   {
     path: '/',
@@ -27,7 +27,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(process.env.BASE_URL),
+  history: createWebHistory(config.BasePath),
   routes,
   scrollBehavior(to, from, savedPosition) {
     // 如果有保存的滚动位置（如浏览器前进后退），则恢复该位置
