@@ -1,0 +1,5 @@
+{
+    "API_BASE_URL": "http://localhost:5099",
+    "BasePath": "/",
+    "_BasePath_Comment": "BasePath 是应用的根路径，通常为 '/',如果应用部署在子路径下，请修改为对应的子路径,eg: '/myapp/'"
+}
