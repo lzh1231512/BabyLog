@@ -26,3 +26,6 @@ pnpm-debug.log*
 /Backend/BabyLog/BabyLog/bin
 /Backend/BabyLog/BabyLog/Events/9
 /Backend/BabyLog/BabyLog/Thumbnail
+/Backend/BabyLog/BabyLog/.config
+/Backend/BabyLog/BabyLog/.vs/BabyLog
+/Backend/BabyLog/BabyLog/Properties/PublishProfiles
