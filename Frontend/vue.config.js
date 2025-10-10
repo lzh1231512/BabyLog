@@ -2,6 +2,7 @@ const { defineConfig } = require('@vue/cli-service')
 
 module.exports = defineConfig({
   transpileDependencies: true,
+  publicPath:'./',
   
   // 开发环境配置
   configureWebpack: config => {
