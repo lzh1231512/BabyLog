@@ -26,6 +26,13 @@ module.exports = defineConfig({
     host: 'localhost',
     https: false,
     hot: true,
-    open: false
+    open: false,
+    // 代理配置（如果需要）
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5099',
+        changeOrigin: true
+      }
+    }
   }
 })

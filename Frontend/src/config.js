@@ -22,6 +22,9 @@ export async function loadConfig() {
 
 export default {
   get API_BASE_URL() {
+    if(process.env.NODE_ENV === 'development'){
+      return '';
+    }
     return configData ? configData.API_BASE_URL : '';
   },
   get BasePath() {

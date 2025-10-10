@@ -3,7 +3,7 @@ import axios from 'axios'
 import config from '../config'
 // API配置
 const API_CONFIG = {
-  baseURL: config.API_BASE_URL || 'http://localhost:5097',
+  baseURL: config.API_BASE_URL,
   timeout: 10000,
 }
 
@@ -198,7 +198,7 @@ export const uploadFiles = async (files) => {
 export const getMediaUrl = (id, fileName, thumbnail) => {
   if(!thumbnail)
     thumbnail = false
-  const baseURL = config.API_BASE_URL || 'http://localhost:5097'
+  const baseURL = config.API_BASE_URL
   return `${baseURL}/api/Files/download?id=${encodeURIComponent(id)}&fileName=${encodeURIComponent(fileName)}&thumbnail=${thumbnail}`
 }
 

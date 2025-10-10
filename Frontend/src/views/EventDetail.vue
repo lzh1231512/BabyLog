@@ -165,7 +165,7 @@
 
     <!-- 照片查看器模态框 -->
     <div class="photo-modal" v-if="showPhotoViewer" @click="closePhotoViewer">
-      <div class="modal-content" @click.stop>
+      <div class="modal-content" @click.stop @touchstart="handleTouchStart" @touchend="handleTouchEnd">
         <button class="modal-close" @click="closePhotoViewer">✕</button>
         <div class="photo-viewer">
           <button class="nav-btn prev" @click="prevPhoto" v-if="currentPhotoIndex > 0">‹</button>
@@ -177,6 +177,9 @@
               <span v-if="!event.media.images[currentPhotoIndex].fileName" class="photo-icon">📷</span>
             </div>
             <p class="photo-counter">{{ currentPhotoIndex + 1 }} / {{ event.media.images.length }}</p>
+            <div class="swipe-hint">
+              <span class="hint-text">← 滑动切换 →</span>
+            </div>
           </div>
           <button class="nav-btn next" @click="nextPhoto" v-if="currentPhotoIndex < event.media.images.length - 1">›</button>
         </div>
@@ -214,7 +217,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import { getEventById, deleteEvent, getMediaUrl } from '@/api/events'
@@ -243,6 +246,12 @@ export default {
     const currentAudioElement = ref(null)
     const loading = ref(true)
     const error = ref('')
+    
+    // 触摸滑动相关
+    const touchStartX = ref(0)
+    const touchStartY = ref(0)
+    const touchEndX = ref(0)
+    const touchEndY = ref(0)
 
     // 获取事件详情
     const loadEventDetail = async () => {
@@ -498,6 +507,59 @@ export default {
       return `${mins}:${secs.toString().padStart(2, '0')}`
     }
 
+    // 触摸开始
+    const handleTouchStart = (e) => {
+      if (!showPhotoViewer.value) return
+      // 防止默认的滚动行为
+      e.preventDefault()
+      touchStartX.value = e.touches[0].clientX
+      touchStartY.value = e.touches[0].clientY
+    }
+
+    // 触摸结束
+    const handleTouchEnd = (e) => {
+      if (!showPhotoViewer.value) return
+      touchEndX.value = e.changedTouches[0].clientX
+      touchEndY.value = e.changedTouches[0].clientY
+      
+      const deltaX = touchEndX.value - touchStartX.value
+      const deltaY = touchEndY.value - touchStartY.value
+      
+      // 判断是否为横向滑动（横向距离大于纵向距离且超过最小阈值）
+      const minSwipeDistance = 50
+      const maxVerticalDistance = 100
+      
+      if (Math.abs(deltaX) > minSwipeDistance && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaY) < maxVerticalDistance) {
+        if (deltaX > 0) {
+          // 向右滑动，显示上一张
+          prevPhoto()
+        } else {
+          // 向左滑动，显示下一张
+          nextPhoto()
+        }
+      }
+    }
+
+    // 键盘事件处理
+    const handleKeyDown = (e) => {
+      if (!showPhotoViewer.value) return
+      
+      switch (e.key) {
+        case 'ArrowLeft':
+          e.preventDefault()
+          prevPhoto()
+          break
+        case 'ArrowRight':
+          e.preventDefault()
+          nextPhoto()
+          break
+        case 'Escape':
+          e.preventDefault()
+          closePhotoViewer()
+          break
+      }
+    }
+
     // 编辑事件
     const editEvent = () => {
       console.log('编辑事件:', event.value.id)
@@ -530,6 +592,14 @@ export default {
       await loadEventDetail()
       // 确保页面滚动到顶部
       window.scrollTo(0, 0)
+      
+      // 添加键盘事件监听
+      document.addEventListener('keydown', handleKeyDown)
+    })
+
+    // 组件卸载时移除事件监听
+    onBeforeUnmount(() => {
+      document.removeEventListener('keydown', handleKeyDown)
     })
 
     return {
@@ -579,7 +649,10 @@ export default {
       editEvent,
       deleteEvent: handleDeleteEvent,
       loadEventDetail,
-      getMediaUrl
+      getMediaUrl,
+      handleTouchStart,
+      handleTouchEnd,
+      handleKeyDown
     }
   }
 }
@@ -1100,6 +1173,29 @@ export default {
   margin: 0;
 }
 
+.swipe-hint {
+  margin-top: 10px;
+  opacity: 0.7;
+}
+
+.hint-text {
+  color: white;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 4px 12px;
+  border-radius: 15px;
+  display: inline-block;
+}
+
+/* 照片容器添加触摸样式 */
+.large-photo-placeholder {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  touch-action: pan-y pinch-zoom;
+}
+
 .nav-btn {
   background: rgba(255, 255, 255, 0.2);
   border: none;
@@ -1192,6 +1288,62 @@ export default {
     font-size: 60px;
   }
   
+  .photo-viewer {
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    width: 100%;
+    position: relative;
+    padding: 0 50px;  /* 为翻页按钮留出空间 */
+  }
+  
+  .photo-viewer .nav-btn {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1001;
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    font-size: 24px;
+    padding: 12px 8px;
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .photo-viewer .nav-btn.prev {
+    left: 10px;
+  }
+  
+  .photo-viewer .nav-btn.next {
+    right: 10px;
+  }
+  
+  .photo-viewer .nav-btn:hover,
+  .photo-viewer .nav-btn:active {
+    background: rgba(0, 0, 0, 0.8);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+  
+  .photo-viewer .nav-btn:active {
+    transform: translateY(-50%) scale(0.95);
+  }
+  
+  .swipe-hint {
+    display: block;
+    margin-top: 15px;
+  }
+  
+  .hint-text {
+    font-size: 11px;
+    opacity: 0.8;
+    animation: fadeInOut 3s ease-in-out infinite;
+  }
+  
   .nav-btn {
     font-size: 30px;
     padding: 15px 10px;
@@ -1217,6 +1369,42 @@ export default {
   .event-meta-info {
     flex-direction: column;
     gap: 10px;
+  }
+}
+
+/* 动画定义 */
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* 更小屏幕设备的优化 */
+@media (max-width: 480px) {
+  .photo-viewer .nav-btn {
+    font-size: 20px;
+    padding: 10px 6px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+  
+  .photo-viewer .nav-btn.prev {
+    left: 5px;
+  }
+  
+  .photo-viewer .nav-btn.next {
+    right: 5px;
+  }
+  
+  .large-photo-placeholder {
+    width: 95vw;
+    height: 250px;
+    font-size: 50px;
+  }
+  
+  .modal-close {
+    top: -35px;
+    font-size: 20px;
+    padding: 8px;
   }
 }
 </style>
