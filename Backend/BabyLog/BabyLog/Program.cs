@@ -19,13 +19,32 @@ namespace BabyLog
                 });
             });
 
-            // Configure request size limits for file uploads
+            // Configure IIS options for larger file uploads
             builder.Services.Configure<IISServerOptions>(options =>
             {
-                options.MaxRequestBodySize = int.MaxValue; // For IIS
+                options.MaxRequestBodySize = int.MaxValue; // Unlimited
             });
 
-            builder.Services.AddControllers();
+            // Configure MVC options for larger file uploads
+            builder.Services.Configure<Microsoft.AspNetCore.Mvc.MvcOptions>(options => 
+            {
+                options.MaxModelBindingCollectionSize = int.MaxValue;
+            });
+
+            // Configure form options for handling large files
+            builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+            {
+                options.ValueLengthLimit = int.MaxValue;
+                options.MultipartBodyLengthLimit = int.MaxValue;
+                options.MultipartHeadersLengthLimit = int.MaxValue;
+                options.BufferBodyLengthLimit = int.MaxValue;
+                options.MemoryBufferThreshold = int.MaxValue;
+            });
+
+            builder.Services.AddControllers(options => {
+                options.MaxModelBindingCollectionSize = 10000;
+            });
+
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
 
@@ -33,7 +52,14 @@ namespace BabyLog
             builder.WebHost.ConfigureKestrel(options =>
             {
                 // Set the limits for the server as a whole
-                options.Limits.MaxRequestBodySize = int.MaxValue; // Unlimited or a specific value like 1073741824 for 1 GB
+                options.Limits.MaxRequestBodySize = long.MaxValue; // Unlimited
+                options.Limits.MinRequestBodyDataRate = null; // Remove minimum data rate
+                options.Limits.MaxResponseBufferSize = 1024 * 1024 * 100; // 100MB response buffer
+                options.Limits.MaxRequestBufferSize = 1024 * 1024 * 100; // 100MB request buffer
+                
+                // Add longer timeouts for large uploads
+                options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(10);
+                options.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(5);
             });
 
             var app = builder.Build();
@@ -48,7 +74,6 @@ namespace BabyLog
             app.UseCors("AllowAll");
 
             app.UseAuthorization();
-
 
             app.MapControllers();
 

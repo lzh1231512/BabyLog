@@ -8,25 +8,35 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.Extensions.Primitives;
+using System.Threading;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Net.Http.Headers;
+using System.Text;
 
 namespace BabyLog.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [RequestSizeLimit(long.MaxValue)]
+    [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
     public class FilesController : ControllerBase
     {
         private readonly ILogger<FilesController> _logger;
         private readonly IWebHostEnvironment _env;
+        private readonly long _fileSizeLimit;
+        private readonly string[] _permittedExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".mp4", ".mov", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".txt", ".mp3", ".wav" };
 
         public FilesController(ILogger<FilesController> logger, IWebHostEnvironment env)
         {
             _logger = logger;
             _env = env;
+            _fileSizeLimit = long.MaxValue; // No limit, or set to specific value
         }
 
         [HttpPost("upload")]
-        [RequestFormLimits(MultipartBodyLengthLimit = 1073741824)] // 1 GB
-        [RequestSizeLimit(1073741824)] // 1 GB
+        [DisableRequestSizeLimit]
+        [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
         public async Task<IActionResult> UploadFile(IFormFile file)
         {
             try
@@ -58,8 +68,8 @@ namespace BabyLog.Controllers
                 string serverFileName = $"{timestamp}_{randomStr}{extension}";
                 string fullPath = Path.Combine(tempFileDirectory, serverFileName);
 
-                // Save the file
-                using (var stream = new FileStream(fullPath, FileMode.Create))
+                // Use a file stream to save directly to disk
+                using (var stream = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.Asynchronous))
                 {
                     await file.CopyToAsync(stream);
                 }
@@ -86,14 +96,14 @@ namespace BabyLog.Controllers
                 {
                     Success = false,
                     Data = null,
-                    Message = "文件上传失败"
+                    Message = $"文件上传失败: {ex.Message}"
                 });
             }
         }
 
         [HttpPost("upload-multiple")]
-        [RequestFormLimits(MultipartBodyLengthLimit = 1073741824)] // 1 GB
-        [RequestSizeLimit(1073741824)] // 1 GB
+        [DisableRequestSizeLimit]
+        [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
         public async Task<IActionResult> UploadFiles(List<IFormFile> files)
         {
             try
@@ -134,8 +144,8 @@ namespace BabyLog.Controllers
                             string serverFileName = $"{timestamp}_{randomStr}{extension}";
                             string fullPath = Path.Combine(tempFileDirectory, serverFileName);
 
-                            // Save the file
-                            using (var stream = new FileStream(fullPath, FileMode.Create))
+                            // Use a file stream to save directly to disk
+                            using (var stream = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.Asynchronous))
                             {
                                 await file.CopyToAsync(stream);
                             }
@@ -155,8 +165,9 @@ namespace BabyLog.Controllers
                             failed++;
                         }
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
+                        _logger.LogError(ex, $"Failed to upload file: {file.FileName}");
                         failed++;
                     }
                 }
@@ -183,7 +194,7 @@ namespace BabyLog.Controllers
                 {
                     Success = false,
                     Data = null,
-                    Message = "批量上传失败"
+                    Message = $"批量上传失败: {ex.Message}"
                 });
             }
         }
