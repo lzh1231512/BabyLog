@@ -373,10 +373,11 @@ export default {
         const response = await uploadFiles(files, 'image')
         
         if (response.success) {
-          response.data.successful.forEach(uploadedFile => {
+          response.data.successful.forEach((uploadedFile, index) => {
+            const originalFile = files[index]
             formData.value.media.images.push({
               fileName: uploadedFile.serverFileName, // 使用服务器端文件名
-              desc: '',
+              desc: originalFile ? originalFile.name : '',
               size: uploadedFile.size,
               uploadTime: uploadedFile.uploadTime
             })
@@ -407,10 +408,11 @@ export default {
         const response = await uploadFiles(files, 'video')
         
         if (response.success) {
-          response.data.successful.forEach(uploadedFile => {
+          response.data.successful.forEach((uploadedFile, index) => {
+            const originalFile = files[index]
             formData.value.media.videos.push({
               fileName: uploadedFile.serverFileName, // 使用服务器端文件名
-              desc: '',
+              desc: originalFile ? originalFile.name : '',
               size: uploadedFile.size,
               uploadTime: uploadedFile.uploadTime
             })
@@ -441,10 +443,11 @@ export default {
         const response = await uploadFiles(files, 'audio')
         
         if (response.success) {
-          response.data.successful.forEach(uploadedFile => {
+          response.data.successful.forEach((uploadedFile, index) => {
+            const originalFile = files[index]
             formData.value.media.audios.push({
               fileName: uploadedFile.serverFileName, // 使用服务器端文件名
-              desc: '',
+              desc: originalFile ? originalFile.name : '',
               size: uploadedFile.size,
               uploadTime: uploadedFile.uploadTime
             })
