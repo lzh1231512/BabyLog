@@ -19,9 +19,22 @@ namespace BabyLog
                 });
             });
 
+            // Configure request size limits for file uploads
+            builder.Services.Configure<IISServerOptions>(options =>
+            {
+                options.MaxRequestBodySize = int.MaxValue; // For IIS
+            });
+
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
+
+            // Configure Kestrel server options to handle large files
+            builder.WebHost.ConfigureKestrel(options =>
+            {
+                // Set the limits for the server as a whole
+                options.Limits.MaxRequestBodySize = int.MaxValue; // Unlimited or a specific value like 1073741824 for 1 GB
+            });
 
             var app = builder.Build();
 

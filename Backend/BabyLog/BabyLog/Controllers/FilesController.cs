@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http.Features;
 
 namespace BabyLog.Controllers
 {
@@ -24,6 +25,8 @@ namespace BabyLog.Controllers
         }
 
         [HttpPost("upload")]
+        [RequestFormLimits(MultipartBodyLengthLimit = 1073741824)] // 1 GB
+        [RequestSizeLimit(1073741824)] // 1 GB
         public async Task<IActionResult> UploadFile(IFormFile file)
         {
             try
@@ -89,6 +92,8 @@ namespace BabyLog.Controllers
         }
 
         [HttpPost("upload-multiple")]
+        [RequestFormLimits(MultipartBodyLengthLimit = 1073741824)] // 1 GB
+        [RequestSizeLimit(1073741824)] // 1 GB
         public async Task<IActionResult> UploadFiles(List<IFormFile> files)
         {
             try
