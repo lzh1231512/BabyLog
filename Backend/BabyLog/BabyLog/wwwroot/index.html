@@ -1,0 +1,109 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BabyLog - 婴儿成长记录</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">
+                <h1>BabyLog</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="#features">功能</a></li>
+                    <li><a href="#records">记录</a></li>
+                    <li><a href="#upload">上传</a></li>
+                    <li><a href="#about">关于</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h2>记录宝宝的每个精彩瞬间</h2>
+            <p>BabyLog 帮助您轻松记录宝宝的成长过程，存储珍贵的照片和视频。</p>
+            <a href="#upload" class="btn-primary">开始上传</a>
+        </div>
+    </section>
+
+    <section id="features" class="features">
+        <div class="container">
+            <h2>主要功能</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📸</div>
+                    <h3>照片存储</h3>
+                    <p>安全存储宝宝的每一张照片，自动生成缩略图便于浏览。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎬</div>
+                    <h3>视频管理</h3>
+                    <p>上传和管理宝宝的视频，记录成长的每个动态瞬间。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📝</div>
+                    <h3>成长记录</h3>
+                    <p>记录宝宝的重要时刻和成长数据，创建完整的成长档案。</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔄</div>
+                    <h3>自动备份</h3>
+                    <p>数据自动备份，确保珍贵的回忆永不丢失。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="upload" class="upload-section">
+        <div class="container">
+            <h2>上传文件</h2>
+            <p>选择照片或视频上传到您的BabyLog账户</p>
+            <div class="upload-container">
+                <div class="upload-box" id="dropzone">
+                    <div class="upload-icon">📤</div>
+                    <p>拖放文件到这里或</p>
+                    <label for="file-upload" class="btn-secondary">选择文件</label>
+                    <input type="file" id="file-upload" multiple style="display: none;">
+                </div>
+                <div class="upload-progress" id="upload-progress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress" id="progress-bar"></div>
+                    </div>
+                    <p id="progress-text">0%</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="records" class="records">
+        <div class="container">
+            <h2>最近记录</h2>
+            <div class="records-grid" id="records-container">
+                <!-- 记录将通过JavaScript动态加载 -->
+                <div class="record-empty">没有找到记录。请先上传文件。</div>
+            </div>
+        </div>
+    </section>
+
+    <section id="about" class="about">
+        <div class="container">
+            <h2>关于BabyLog</h2>
+            <p>BabyLog是一个专为父母设计的应用程序，帮助他们记录和珍藏孩子成长的每一个精彩时刻。我们的目标是让记录变得简单，回忆永久保存。</p>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 BabyLog. 保留所有权利。</p>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

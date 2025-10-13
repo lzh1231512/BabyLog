@@ -73,9 +73,15 @@ namespace BabyLog
             // Use CORS before authorization and endpoint routing
             app.UseCors("AllowAll");
 
+            // 添加静态文件支持
+            app.UseStaticFiles();
+
             app.UseAuthorization();
 
             app.MapControllers();
+
+            // 添加默认文件支持
+            app.UseDefaultFiles();
 
             app.Run();
         }
