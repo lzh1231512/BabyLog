@@ -1,18 +1,20 @@
+using BabyLog.Commons;
 using BabyLog.Models;
 using FFMpegCore;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Primitives;
+using Microsoft.Net.Http.Headers;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http.Features;
-using Microsoft.Extensions.Primitives;
-using System.Threading;
-using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.Net.Http.Headers;
+using System.Net.Mime;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace BabyLog.Controllers
 {
@@ -242,7 +244,7 @@ namespace BabyLog.Controllers
                 {
                     // Reset to original filename for finding the source file
                     fileNameToUse = fileName;
-                    
+
                     // Check TempFile directory
                     var tempFilePath = Path.Combine(_env.ContentRootPath, "TempFile", fileNameToUse);
                     if (System.IO.File.Exists(tempFilePath))
@@ -268,14 +270,14 @@ namespace BabyLog.Controllers
                         {
                             var thumbnailDirectory = Path.Combine(_env.ContentRootPath, "Thumbnail", id.Value.ToString());
                             Directory.CreateDirectory(thumbnailDirectory);
-                            
+
                             // For videos, use .png extension for the thumbnail
-                            string thumbnailFileName = isVideoFile 
+                            string thumbnailFileName = isVideoFile
                                 ? Path.GetFileNameWithoutExtension(fileNameToUse) + ".png"
                                 : fileNameToUse;
-                                
+
                             var thumbnailPath = Path.Combine(thumbnailDirectory, thumbnailFileName);
-                            
+
                             // Generate thumbnail if it doesn't exist
                             if (!System.IO.File.Exists(thumbnailPath))
                             {
@@ -301,7 +303,7 @@ namespace BabyLog.Controllers
                 {
                     // Update last access time for cleanup tracking
                     new FileInfo(filePath).LastAccessTime = DateTime.Now;
-                    
+
                     // Return the file
                     var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
                     return File(fileStream, contentType, Path.GetFileName(filePath));
@@ -326,6 +328,7 @@ namespace BabyLog.Controllers
             }
         }
 
+
         private bool IsVideoFile(string fileName)
         {
             var ext = Path.GetExtension(fileName).ToLowerInvariant();
@@ -346,19 +349,19 @@ namespace BabyLog.Controllers
         private void GenerateThumbnail(string sourceFilePath, string targetFilePath)
         {
             var sourceExt = Path.GetExtension(sourceFilePath).ToLowerInvariant();
-            
+
             if (sourceExt == ".jpg" || sourceExt == ".jpeg" || sourceExt == ".png" || sourceExt == ".gif" || sourceExt == ".webp")
             {
                 // Generate thumbnail for images
                 using var image = Image.Load(sourceFilePath);
-                
+
                 // Resize to 300px max width/height preserving aspect ratio
                 image.Mutate(x => x.Resize(new ResizeOptions
                 {
                     Mode = ResizeMode.Max,
                     Size = new Size(300, 300)
                 }));
-                
+
                 image.Save(targetFilePath);
             }
             else if (sourceExt == ".mp4" || sourceExt == ".mov")
@@ -367,7 +370,7 @@ namespace BabyLog.Controllers
                 try
                 {
                     // Generate a thumbnail image at 1 second into the video
-                    FFMpeg.Snapshot(sourceFilePath, targetFilePath, new System.Drawing.Size(300, 300), 
+                    FFMpeg.Snapshot(sourceFilePath, targetFilePath, new System.Drawing.Size(300, 300),
                         TimeSpan.FromSeconds(1));
                 }
                 catch (Exception ex)
@@ -582,5 +585,125 @@ namespace BabyLog.Controllers
                 });
             }
         }
+    
+        [HttpGet("downloadVideo")]
+        public IActionResult DownloadVideoFile([FromQuery] int? id, [FromQuery] string fileName)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(fileName))
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Data = null,
+                        Message = "文件名不能为空"
+                    });
+                }
+
+                if (!id.HasValue)
+                {
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Data = null,
+                        Message = "需要指定事件ID"
+                    });
+                }
+
+                // 查找视频文件路径
+                string filePath = null;
+
+                // 先检查临时文件目录
+                var tempFilePath = Path.Combine(_env.ContentRootPath, "TempFile", fileName);
+                if (System.IO.File.Exists(tempFilePath))
+                {
+                    filePath = tempFilePath;
+                }
+                // 再检查事件目录
+                else
+                {
+                    var eventsFilePath = Path.Combine(_env.ContentRootPath, "Events", id.Value.ToString(), fileName);
+                    if (System.IO.File.Exists(eventsFilePath))
+                    {
+                        filePath = eventsFilePath;
+                    }
+                }
+
+                if (filePath == null)
+                {
+                    return NotFound(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Data = null,
+                        Message = "文件不存在"
+                    });
+                }
+
+                // 获取文件信息和内容类型
+                var fileInfo = new FileInfo(filePath);
+                var fileLength = fileInfo.Length;
+                var contentType = GetContentType(fileName);
+
+                // 更新文件最后访问时间（用于清理跟踪）
+                fileInfo.LastAccessTime = DateTime.Now;
+
+                // 启用范围请求处理
+                Response.Headers.Add("Accept-Ranges", "bytes");
+
+                // 检查是否有Range请求头
+                if (!Request.Headers.ContainsKey("Range"))
+                {
+                    // 没有Range头，返回完整文件但启用范围处理
+                    return File(System.IO.File.OpenRead(filePath), contentType, enableRangeProcessing: true);
+                }
+
+                // 解析Range请求头
+                var rangeHeader = Request.Headers["Range"].ToString();
+                var rangeValue = rangeHeader.Replace("bytes=", "");
+                var rangeParts = rangeValue.Split('-');
+
+                // 计算开始和结束位置
+                long startByte = 0;
+                long endByte = fileLength - 1;
+
+                if (rangeParts.Length > 0 && long.TryParse(rangeParts[0], out var parsedStart))
+                {
+                    startByte = parsedStart;
+                }
+
+                if (rangeParts.Length > 1 && !string.IsNullOrEmpty(rangeParts[1]) &&
+                    long.TryParse(rangeParts[1], out var parsedEnd))
+                {
+                    endByte = Math.Min(parsedEnd, fileLength - 1);
+                }
+
+                // 计算返回的内容长度
+                var contentLength = endByte - startByte + 1;
+
+                // 设置响应头
+                Response.ContentLength = contentLength;
+                Response.StatusCode = StatusCodes.Status206PartialContent;
+                Response.Headers.Add("Content-Range", $"bytes {startByte}-{endByte}/{fileLength}");
+
+                // 打开文件并定位到请求的起始位置
+                using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+                fileStream.Seek(startByte, SeekOrigin.Begin);
+
+                // 创建一个有限制长度的流来确保只返回所请求范围的内容
+                return File(new LimitedStream(fileStream, contentLength), contentType, enableRangeProcessing: false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"视频文件下载失败: {fileName}");
+                return StatusCode(500, new ApiResponse<object>
+                {
+                    Success = false,
+                    Data = null,
+                    Message = $"视频文件下载失败: {ex.Message}"
+                });
+            }
+        }
     }
+        
 }

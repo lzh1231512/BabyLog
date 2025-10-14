@@ -43,7 +43,7 @@
           >
             <div 
               class="photo-placeholder"
-              :style="{ backgroundImage: `url(${getMediaUrl(event.id, image.fileName)})` }"
+              :style="{ backgroundImage: `url(${getMediaUrl(event.id, image.fileName,true)})` }"
             >
               <span v-if="!image.fileName" class="photo-icon">📷</span>
               <span class="photo-index">{{ index + 1 }}</span>
@@ -63,14 +63,12 @@
             class="video-item"
           >
             <div class="video-container" @click="openVideoPlayer(video, index)">
-              <video 
-                :src="getMediaUrl(event.id, video.fileName)"
+              <div 
                 class="video-preview"
-                preload="metadata"
-                @loadedmetadata="onVideoLoaded"
+                :style="{ backgroundImage: `url(${getMediaUrl(event.id, video.fileName, true)})` }"
               >
-                您的浏览器不支持视频播放
-              </video>
+                <span v-if="!video.fileName" class="video-icon">🎬</span>
+              </div>
               <div class="video-overlay">
                 <span class="play-overlay">▶️</span>
                 <span class="video-duration" v-if="video.duration">{{ formatDuration(video.duration) }}</span>
@@ -167,18 +165,37 @@
     <div class="photo-modal" v-if="showPhotoViewer" @click="closePhotoViewer">
       <div class="modal-content" @click.stop @touchstart="handleTouchStart" @touchend="handleTouchEnd">
         <button class="modal-close" @click="closePhotoViewer">✕</button>
+        
+        <!-- PC端缩放控制按钮 -->
+        <div class="zoom-controls desktop-only">
+          <button class="zoom-btn" @click="zoomOut" :disabled="imageScale <= minScale">−</button>
+          <span class="zoom-level">{{ Math.round(imageScale * 100) }}%</span>
+          <button class="zoom-btn" @click="zoomIn" :disabled="imageScale >= maxScale">+</button>
+          <button class="zoom-btn reset" @click="resetZoom" v-if="imageScale !== 1">重置</button>
+        </div>
+        
         <div class="photo-viewer">
           <button class="nav-btn prev" @click="prevPhoto" v-if="currentPhotoIndex > 0">‹</button>
           <div class="current-photo">
             <div 
-              class="large-photo-placeholder"
-              :style="{ backgroundImage: `url(${getMediaUrl(event.id, event.media.images[currentPhotoIndex].fileName)})` }"
+              class="large-photo-container"
+              @dblclick="handleDoubleClick"
             >
-              <span v-if="!event.media.images[currentPhotoIndex].fileName" class="photo-icon">📷</span>
+              <div 
+                class="large-photo-placeholder"
+                :style="{
+                  backgroundImage: `url(${getMediaUrl(event.id, event.media.images[currentPhotoIndex].fileName)})`,
+                  transform: `scale(${imageScale}) translate(${imageTranslateX}px, ${imageTranslateY}px)`,
+                  transition: imageScale === 1 ? 'transform 0.3s ease' : 'none'
+                }"
+              >
+                <span v-if="!event.media.images[currentPhotoIndex].fileName" class="photo-icon">📷</span>
+              </div>
             </div>
             <p class="photo-counter">{{ currentPhotoIndex + 1 }} / {{ event.media.images.length }}</p>
             <div class="swipe-hint">
-              <span class="hint-text">← 滑动切换 →</span>
+              <span class="hint-text" v-if="imageScale <= 1">← 滑动切换 →</span>
+              <span class="hint-text" v-else>双击重置缩放</span>
             </div>
           </div>
           <button class="nav-btn next" @click="nextPhoto" v-if="currentPhotoIndex < event.media.images.length - 1">›</button>
@@ -193,7 +210,7 @@
         <div class="video-player">
           <video 
             ref="videoPlayerRef"
-            :src="getMediaUrl(event.id, currentVideo?.fileName)"
+            :src="getVideoUrl(event.id, currentVideo?.fileName)"
             class="modal-video"
             controls
             autoplay
@@ -220,7 +237,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import dayjs from 'dayjs'
-import { getEventById, deleteEvent, getMediaUrl } from '@/api/events'
+import { getEventById, deleteEvent, getMediaUrl,getVideoUrl } from '@/api/events'
 
 export default {
   name: 'EventDetail',
@@ -252,6 +269,13 @@ export default {
     const touchStartY = ref(0)
     const touchEndX = ref(0)
     const touchEndY = ref(0)
+    
+    // 图片缩放相关
+    const imageScale = ref(1)
+    const imageTranslateX = ref(0)
+    const imageTranslateY = ref(0)
+    const minScale = 0.5
+    const maxScale = 3
 
     // 获取事件详情
     const loadEventDetail = async () => {
@@ -332,12 +356,55 @@ export default {
     // 关闭照片查看器
     const closePhotoViewer = () => {
       showPhotoViewer.value = false
+      // 重置缩放状态
+      resetImageTransform()
+    }
+    
+    // 重置图片变换
+    const resetImageTransform = () => {
+      imageScale.value = 1
+      imageTranslateX.value = 0
+      imageTranslateY.value = 0
+    }
+    
+    // 放大图片
+    const zoomIn = () => {
+      if (imageScale.value < maxScale) {
+        imageScale.value = Math.min(imageScale.value * 1.5, maxScale)
+      }
+    }
+    
+    // 缩小图片
+    const zoomOut = () => {
+      if (imageScale.value > minScale) {
+        imageScale.value = Math.max(imageScale.value / 1.5, minScale)
+        // 如果缩小后超出边界，重置位置
+        if (imageScale.value <= 1) {
+          imageTranslateX.value = 0
+          imageTranslateY.value = 0
+        }
+      }
+    }
+    
+    // 重置缩放
+    const resetZoom = () => {
+      resetImageTransform()
+    }
+    
+    // 双击缩放
+    const handleDoubleClick = () => {
+      if (imageScale.value === 1) {
+        imageScale.value = 2
+      } else {
+        resetImageTransform()
+      }
     }
 
     // 上一张照片
     const prevPhoto = () => {
       if (currentPhotoIndex.value > 0) {
         currentPhotoIndex.value--
+        resetImageTransform()
       }
     }
 
@@ -345,6 +412,7 @@ export default {
     const nextPhoto = () => {
       if (currentPhotoIndex.value < event.value.media.images.length - 1) {
         currentPhotoIndex.value++
+        resetImageTransform()
       }
     }
 
@@ -379,14 +447,7 @@ export default {
       }
     }
 
-    // 视频加载完成
-    const onVideoLoaded = (e) => {
-      // 获取视频时长等信息
-      const video = e.target
-      if (video.duration) {
-        console.log('视频时长:', video.duration)
-      }
-    }
+
 
     // 视频播放结束
     const onVideoEnded = () => {
@@ -510,32 +571,41 @@ export default {
     // 触摸开始
     const handleTouchStart = (e) => {
       if (!showPhotoViewer.value) return
-      // 防止默认的滚动行为
-      e.preventDefault()
-      touchStartX.value = e.touches[0].clientX
-      touchStartY.value = e.touches[0].clientY
+      
+      if (e.touches.length === 1) {
+        // 单指触摸，记录位置用于滑动
+        touchStartX.value = e.touches[0].clientX
+        touchStartY.value = e.touches[0].clientY
+      } else if (e.touches.length === 2) {
+        // 双指触摸，防止默认行为
+        e.preventDefault()
+      }
     }
 
     // 触摸结束
     const handleTouchEnd = (e) => {
       if (!showPhotoViewer.value) return
-      touchEndX.value = e.changedTouches[0].clientX
-      touchEndY.value = e.changedTouches[0].clientY
       
-      const deltaX = touchEndX.value - touchStartX.value
-      const deltaY = touchEndY.value - touchStartY.value
-      
-      // 判断是否为横向滑动（横向距离大于纵向距离且超过最小阈值）
-      const minSwipeDistance = 50
-      const maxVerticalDistance = 100
-      
-      if (Math.abs(deltaX) > minSwipeDistance && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaY) < maxVerticalDistance) {
-        if (deltaX > 0) {
-          // 向右滑动，显示上一张
-          prevPhoto()
-        } else {
-          // 向左滑动，显示下一张
-          nextPhoto()
+      if (e.changedTouches.length === 1 && imageScale.value <= 1) {
+        // 只有在未缩放状态下才响应滑动切换
+        touchEndX.value = e.changedTouches[0].clientX
+        touchEndY.value = e.changedTouches[0].clientY
+        
+        const deltaX = touchEndX.value - touchStartX.value
+        const deltaY = touchEndY.value - touchStartY.value
+        
+        // 判断是否为横向滑动（横向距离大于纵向距离且超过最小阈值）
+        const minSwipeDistance = 50
+        const maxVerticalDistance = 100
+        
+        if (Math.abs(deltaX) > minSwipeDistance && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaY) < maxVerticalDistance) {
+          if (deltaX > 0) {
+            // 向右滑动，显示上一张
+            prevPhoto()
+          } else {
+            // 向左滑动，显示下一张
+            nextPhoto()
+          }
         }
       }
     }
@@ -633,7 +703,6 @@ export default {
       closeVideoPlayer,
       prevVideo,
       nextVideo,
-      onVideoLoaded,
       onVideoEnded,
       onVideoError,
       formatDuration,
@@ -650,9 +719,20 @@ export default {
       deleteEvent: handleDeleteEvent,
       loadEventDetail,
       getMediaUrl,
+      getVideoUrl,
       handleTouchStart,
       handleTouchEnd,
-      handleKeyDown
+      handleKeyDown,
+      // 缩放相关
+      imageScale,
+      imageTranslateX,
+      imageTranslateY,
+      minScale,
+      maxScale,
+      zoomIn,
+      zoomOut,
+      resetZoom,
+      handleDoubleClick
     }
   }
 }
@@ -771,7 +851,7 @@ export default {
 .photo-placeholder {
   height: 150px;
   background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
-  background-size: cover;
+  background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
   border-radius: 10px;
@@ -785,6 +865,10 @@ export default {
 }
 
 .photo-icon {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.video-icon {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
@@ -826,8 +910,15 @@ export default {
 .video-preview {
   width: 100%;
   height: 100%;
-  object-fit: cover;
   background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  color: white;
 }
 
 .video-overlay {
@@ -1151,11 +1242,21 @@ export default {
   text-align: center;
 }
 
-.large-photo-placeholder {
+.large-photo-container {
   width: 500px;
   height: 400px;
+  overflow: hidden;
+  border-radius: 15px;
+  position: relative;
+  margin-bottom: 15px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.large-photo-placeholder {
+  width: 100%;
+  height: 100%;
   background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
-  background-size: cover;
+  background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
   border-radius: 15px;
@@ -1164,7 +1265,12 @@ export default {
   justify-content: center;
   font-size: 80px;
   color: white;
-  margin-bottom: 15px;
+  cursor: grab;
+  transform-origin: center;
+}
+
+.large-photo-placeholder:active {
+  cursor: grabbing;
 }
 
 .photo-counter {
@@ -1193,7 +1299,65 @@ export default {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
-  touch-action: pan-y pinch-zoom;
+  touch-action: pan-x pan-y pinch-zoom;
+}
+
+/* 缩放控制按钮 */
+.zoom-controls {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 8px 15px;
+  border-radius: 25px;
+  z-index: 1002;
+}
+
+.zoom-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.zoom-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.zoom-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.zoom-btn.reset {
+  font-size: 12px;
+  width: auto;
+  padding: 0 12px;
+  border-radius: 16px;
+}
+
+.zoom-level {
+  color: white;
+  font-size: 14px;
+  min-width: 45px;
+  text-align: center;
+}
+
+/* 桌面端显示 */
+.desktop-only {
+  display: block;
 }
 
 .nav-btn {
@@ -1225,6 +1389,8 @@ export default {
   max-height: 70vh;
   border-radius: 10px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  object-fit: contain;
+  background: #000;
 }
 
 .video-info {
@@ -1282,10 +1448,18 @@ export default {
     font-size: 30px;
   }
   
-  .large-photo-placeholder {
+  .large-photo-container {
     width: 90vw;
     height: 300px;
+  }
+  
+  .large-photo-placeholder {
     font-size: 60px;
+  }
+  
+  /* 移动端隐藏缩放控制按钮 */
+  .desktop-only {
+    display: none;
   }
   
   .photo-viewer {
@@ -1351,6 +1525,8 @@ export default {
   
   .modal-video {
     max-height: 60vh;
+    width: auto;
+    height: auto;
   }
   
   .video-controls {
@@ -1395,9 +1571,12 @@ export default {
     right: 5px;
   }
   
-  .large-photo-placeholder {
+  .large-photo-container {
     width: 95vw;
     height: 250px;
+  }
+  
+  .large-photo-placeholder {
     font-size: 50px;
   }
   

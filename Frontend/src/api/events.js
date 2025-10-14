@@ -202,6 +202,12 @@ export const getMediaUrl = (id, fileName, thumbnail) => {
   return `${baseURL}/api/Files/download?id=${encodeURIComponent(id)}&fileName=${encodeURIComponent(fileName)}&thumbnail=${thumbnail}`
 }
 
+
+export const getVideoUrl = (id, fileName) => {
+  const baseURL = config.API_BASE_URL
+  return `${baseURL}/api/Files/downloadVideo?id=${encodeURIComponent(id)}&fileName=${encodeURIComponent(fileName)}`
+}
+
 /**
  * 获取统计数据
  */
