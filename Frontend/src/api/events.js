@@ -97,7 +97,7 @@ export const createEvent = async (eventData) => {
  */
 export const updateEvent = async (id, eventData) => {
   try {
-    const response = await apiClient.put(`/api/Events/${id}`, eventData)
+    const response = await apiClient.post(`/api/Events/update/${id}`, eventData)
     // 直接返回API响应，因为后端已经是标准格式
     return response.data
   } catch (error) {
@@ -121,7 +121,7 @@ export const updateEvent = async (id, eventData) => {
  */
 export const deleteEvent = async (id) => {
   try {
-    const response = await apiClient.delete(`/api/Events/${id}`)
+    const response = await apiClient.post(`/api/Events/delete/${id}`)
     // 直接返回API响应，因为后端已经是标准格式
     return response.data
   } catch (error) {

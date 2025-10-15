@@ -43,6 +43,28 @@
             return bytesRead;
         }
 
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            var remaining = _length - _position;
+            if (remaining <= 0) return 0;
+
+            var toRead = Math.Min(count, (int)remaining);
+            var bytesRead = await _baseStream.ReadAsync(buffer, offset, toRead, cancellationToken);
+            _position += bytesRead;
+            return bytesRead;
+        }
+
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            var remaining = _length - _position;
+            if (remaining <= 0) return 0;
+
+            var toRead = (int)Math.Min(buffer.Length, remaining);
+            var bytesRead = await _baseStream.ReadAsync(buffer.Slice(0, toRead), cancellationToken);
+            _position += bytesRead;
+            return bytesRead;
+        }
+
         public override long Seek(long offset, SeekOrigin origin)
         {
             long newPosition;

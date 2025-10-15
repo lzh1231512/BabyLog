@@ -143,7 +143,7 @@ namespace BabyLog.Controllers
             }
         }
 
-        [HttpPut("{id}")]
+        [HttpPost("update/{id}")]
         public async Task<IActionResult> UpdateEvent(int id, [FromBody] Event eventData)
         {
             try
@@ -190,7 +190,7 @@ namespace BabyLog.Controllers
             }
         }
 
-        [HttpDelete("{id}")]
+        [HttpPost("delete/{id}")]
         public async Task<IActionResult> DeleteEvent(int id)
         {
             try
