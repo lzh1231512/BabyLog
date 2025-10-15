@@ -1,5 +1,14 @@
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
 
+# 安装FFmpeg和相关依赖
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    ffmpeg \
+    libgdiplus \
+    libc6-dev \
+    libfontconfig1 \
+    && rm -rf /var/lib/apt/lists/*
+	
 # Set environment variables for large file uploads
 ENV ASPNETCORE_MaxRequestBodySize=9223372036854775807
 ENV ASPNETCORE_DISABLE_REQUEST_LIMITS=true

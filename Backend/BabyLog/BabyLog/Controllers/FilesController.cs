@@ -204,6 +204,8 @@ namespace BabyLog.Controllers
         [HttpGet("download")]
         public IActionResult DownloadFile([FromQuery] int? id, [FromQuery] string fileName, [FromQuery] bool thumbnail = false)
         {
+            _logger.Log(LogLevel.Information, $"Download request received: id={id}, fileName={fileName}, thumbnail={thumbnail}");
+
             try
             {
                 if (string.IsNullOrEmpty(fileName))
@@ -301,11 +303,18 @@ namespace BabyLog.Controllers
 
                 if (filePath != null)
                 {
-                    // Update last access time for cleanup tracking
+                    // 更新last access time for cleanup tracking
                     new FileInfo(filePath).LastAccessTime = DateTime.Now;
 
-                    // Return the file
+                    var fileInfo = new FileInfo(filePath);
                     var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+                    
+                    // 显式添加内容类型和内容长度头
+                    Response.Headers.Add("Content-Type", contentType ?? "application/octet-stream");
+                    Response.Headers.Add("Content-Length", fileInfo.Length.ToString());
+                    Response.Headers.Add("Content-Disposition", $"attachment; filename=\"{Path.GetFileName(filePath)}\"");
+                    Response.Headers.Add("Accept-Ranges", "bytes");
+                    
                     return File(fileStream, contentType, Path.GetFileName(filePath));
                 }
 
@@ -686,12 +695,15 @@ namespace BabyLog.Controllers
                 Response.StatusCode = StatusCodes.Status206PartialContent;
                 Response.Headers.Add("Content-Range", $"bytes {startByte}-{endByte}/{fileLength}");
 
-                // 打开文件并定位到请求的起始位置
-                using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+                // 打开文件但不使用using语句，让ASP.NET Core负责关闭
+                var fileStream = System.IO.File.OpenRead(filePath);
                 fileStream.Seek(startByte, SeekOrigin.Begin);
 
-                // 创建一个有限制长度的流来确保只返回所请求范围的内容
-                return File(new LimitedStream(fileStream, contentLength), contentType, enableRangeProcessing: false);
+                // 创建LimitedStream但不自己处理其生命周期
+                var limitedStream = new LimitedStream(fileStream, contentLength);
+                
+                // ASP.NET Core会在响应完成后自动关闭流
+                return File(limitedStream, contentType, enableRangeProcessing: false);
             }
             catch (Exception ex)
             {
