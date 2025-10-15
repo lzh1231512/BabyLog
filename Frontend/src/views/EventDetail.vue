@@ -163,7 +163,7 @@
 
     <!-- 照片查看器模态框 -->
     <div class="photo-modal" v-if="showPhotoViewer" @click="closePhotoViewer">
-      <div class="modal-content" @click.stop @touchstart="handleTouchStart" @touchend="handleTouchEnd">
+      <div class="modal-content" @click.stop @touchstart="handleTouchStart" @touchmove="handleTouchMove" @touchend="handleTouchEnd">
         <button class="modal-close" @click="closePhotoViewer">✕</button>
         
         <!-- PC端缩放控制按钮 -->
@@ -238,6 +238,7 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import { getEventById, deleteEvent, getMediaUrl,getVideoUrl } from '@/api/events'
+import { createPhotoViewerGesture } from '@/utils/touchGestureManager'
 
 export default {
   name: 'EventDetail',
@@ -264,18 +265,15 @@ export default {
     const loading = ref(true)
     const error = ref('')
     
-    // 触摸滑动相关
-    const touchStartX = ref(0)
-    const touchStartY = ref(0)
-    const touchEndX = ref(0)
-    const touchEndY = ref(0)
-    
     // 图片缩放相关
     const imageScale = ref(1)
     const imageTranslateX = ref(0)
     const imageTranslateY = ref(0)
     const minScale = 0.5
     const maxScale = 3
+    
+    // 触摸手势管理器
+    const gestureManager = ref(null)
 
     // 获取事件详情
     const loadEventDetail = async () => {
@@ -351,11 +349,20 @@ export default {
     const openPhotoViewer = (index) => {
       currentPhotoIndex.value = index
       showPhotoViewer.value = true
+      // 初始化手势管理器
+      setTimeout(() => {
+        initGestureManager()
+        gestureManager.value.activate()
+      }, 100)
     }
 
     // 关闭照片查看器
     const closePhotoViewer = () => {
       showPhotoViewer.value = false
+      // 停用手势管理器
+      if (gestureManager.value) {
+        gestureManager.value.deactivate()
+      }
       // 重置缩放状态
       resetImageTransform()
     }
@@ -371,6 +378,10 @@ export default {
     const zoomIn = () => {
       if (imageScale.value < maxScale) {
         imageScale.value = Math.min(imageScale.value * 1.5, maxScale)
+        // 同步手势管理器状态
+        if (gestureManager.value) {
+          gestureManager.value.setScale(imageScale.value)
+        }
       }
     }
     
@@ -383,20 +394,37 @@ export default {
           imageTranslateX.value = 0
           imageTranslateY.value = 0
         }
+        // 同步手势管理器状态
+        if (gestureManager.value) {
+          gestureManager.value.setScale(imageScale.value)
+          gestureManager.value.setTranslate(imageTranslateX.value, imageTranslateY.value)
+        }
       }
     }
     
     // 重置缩放
     const resetZoom = () => {
       resetImageTransform()
+      // 同步手势管理器状态
+      if (gestureManager.value) {
+        gestureManager.value.setScale(1)
+        gestureManager.value.setTranslate(0, 0)
+      }
     }
     
-    // 双击缩放
+    // 双击缩放（保留用于桌面端）
     const handleDoubleClick = () => {
       if (imageScale.value === 1) {
         imageScale.value = 2
+        if (gestureManager.value) {
+          gestureManager.value.setScale(2)
+        }
       } else {
         resetImageTransform()
+        if (gestureManager.value) {
+          gestureManager.value.setScale(1)
+          gestureManager.value.setTranslate(0, 0)
+        }
       }
     }
 
@@ -405,6 +433,11 @@ export default {
       if (currentPhotoIndex.value > 0) {
         currentPhotoIndex.value--
         resetImageTransform()
+        // 同步手势管理器状态
+        if (gestureManager.value) {
+          gestureManager.value.setScale(1)
+          gestureManager.value.setTranslate(0, 0)
+        }
       }
     }
 
@@ -413,6 +446,11 @@ export default {
       if (currentPhotoIndex.value < event.value.media.images.length - 1) {
         currentPhotoIndex.value++
         resetImageTransform()
+        // 同步手势管理器状态
+        if (gestureManager.value) {
+          gestureManager.value.setScale(1)
+          gestureManager.value.setTranslate(0, 0)
+        }
       }
     }
 
@@ -568,46 +606,66 @@ export default {
       return `${mins}:${secs.toString().padStart(2, '0')}`
     }
 
-    // 触摸开始
-    const handleTouchStart = (e) => {
-      if (!showPhotoViewer.value) return
-      
-      if (e.touches.length === 1) {
-        // 单指触摸，记录位置用于滑动
-        touchStartX.value = e.touches[0].clientX
-        touchStartY.value = e.touches[0].clientY
-      } else if (e.touches.length === 2) {
-        // 双指触摸，防止默认行为
-        e.preventDefault()
+    // 初始化手势管理器
+    const initGestureManager = () => {
+      if (gestureManager.value) {
+        gestureManager.value.deactivate()
       }
+      
+      gestureManager.value = createPhotoViewerGesture({
+        minScale: minScale,
+        maxScale: maxScale
+      })
+      
+      // 设置手势回调
+      gestureManager.value.on('swipeLeft', () => {
+        nextPhoto()
+      })
+      
+      gestureManager.value.on('swipeRight', () => {
+        prevPhoto()
+      })
+      
+      gestureManager.value.on('scale', (data) => {
+        imageScale.value = data.scale
+        imageTranslateX.value = data.translateX
+        imageTranslateY.value = data.translateY
+      })
+      
+      gestureManager.value.on('drag', (data) => {
+        imageTranslateX.value = data.translateX
+        imageTranslateY.value = data.translateY
+      })
+      
+      gestureManager.value.on('doubleTap', (data) => {
+        if (data.currentScale === 1) {
+          // 放大到2倍
+          const newScale = 2
+          imageScale.value = newScale
+          gestureManager.value.setScale(newScale)
+        } else {
+          // 重置缩放
+          resetZoom()
+          gestureManager.value.setScale(1)
+          gestureManager.value.setTranslate(0, 0)
+        }
+      })
     }
 
-    // 触摸结束
+    // 触摸事件代理函数
+    const handleTouchStart = (e) => {
+      if (!showPhotoViewer.value || !gestureManager.value) return
+      gestureManager.value.handleTouchStart(e)
+    }
+
+    const handleTouchMove = (e) => {
+      if (!showPhotoViewer.value || !gestureManager.value) return
+      gestureManager.value.handleTouchMove(e)
+    }
+
     const handleTouchEnd = (e) => {
-      if (!showPhotoViewer.value) return
-      
-      if (e.changedTouches.length === 1 && imageScale.value <= 1) {
-        // 只有在未缩放状态下才响应滑动切换
-        touchEndX.value = e.changedTouches[0].clientX
-        touchEndY.value = e.changedTouches[0].clientY
-        
-        const deltaX = touchEndX.value - touchStartX.value
-        const deltaY = touchEndY.value - touchStartY.value
-        
-        // 判断是否为横向滑动（横向距离大于纵向距离且超过最小阈值）
-        const minSwipeDistance = 50
-        const maxVerticalDistance = 100
-        
-        if (Math.abs(deltaX) > minSwipeDistance && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaY) < maxVerticalDistance) {
-          if (deltaX > 0) {
-            // 向右滑动，显示上一张
-            prevPhoto()
-          } else {
-            // 向左滑动，显示下一张
-            nextPhoto()
-          }
-        }
-      }
+      if (!showPhotoViewer.value || !gestureManager.value) return
+      gestureManager.value.handleTouchEnd(e)
     }
 
     // 键盘事件处理
@@ -721,8 +779,10 @@ export default {
       getMediaUrl,
       getVideoUrl,
       handleTouchStart,
+      handleTouchMove,
       handleTouchEnd,
       handleKeyDown,
+      initGestureManager,
       // 缩放相关
       imageScale,
       imageTranslateX,
@@ -732,7 +792,9 @@ export default {
       zoomIn,
       zoomOut,
       resetZoom,
-      handleDoubleClick
+      handleDoubleClick,
+      // 手势管理器
+      gestureManager
     }
   }
 }
