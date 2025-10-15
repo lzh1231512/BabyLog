@@ -323,7 +323,7 @@ namespace BabyLog.Controllers
                 {
                     Success = false,
                     Data = null,
-                    Message = "文件下载失败"
+                    Message = "文件下载失败:"+ ex.Message
                 });
             }
         }
