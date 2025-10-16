@@ -75,6 +75,27 @@ export const getEventById = async (id) => {
   }
 }
 
+export const getVideoRotation = async (id, fileName) => {
+  try {
+    const response = await apiClient.get(`/api/files/getVideoRotation?id=${id}&fileName=${encodeURIComponent(fileName)}`)
+    // 直接返回API响应，因为后端已经是标准格式
+    return response.data
+  } catch (error) {
+    if (error.response?.status === 404) {
+      return {
+        success: false,
+        data: null,
+        message: '事件不存在'
+      }
+    }
+    return {
+      success: false,
+      data: null,
+      message: error.response?.data?.message || '获取视频旋转角度失败'
+    }
+  }
+}
+
 /**
  * 创建新事件
  */

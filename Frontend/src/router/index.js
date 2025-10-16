@@ -2,6 +2,7 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import EventDetail from '../views/EventDetail.vue'
 import AddEditEvent from '../views/AddEditEvent.vue'
+import VideoPlayer from '../views/VideoPlayer.vue'
 import VideoTest1 from '../views/VideoTest1.vue'
 import VideoTest2 from '../views/VideoTest2.vue'
 import VideoTest3 from '../views/VideoTest3.vue'
@@ -27,6 +28,11 @@ const routes = [
     path: '/edit/:id',
     name: 'EditEvent',
     component: AddEditEvent
+  },
+  {
+    path: '/video-player/:id/:videoIndex?',
+    name: 'VideoPlayer',
+    component: VideoPlayer
   },
   {
     path: '/video-test-1',
