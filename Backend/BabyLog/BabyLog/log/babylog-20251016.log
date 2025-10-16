@@ -1,0 +1,8 @@
+2025-10-16 15:45:23.917 +08:00 [INF] Now listening on: http://localhost:5099
+2025-10-16 15:45:24.115 +08:00 [INF] Application started. Press Ctrl+C to shut down.
+2025-10-16 15:45:24.117 +08:00 [INF] Hosting environment: Development
+2025-10-16 15:45:24.118 +08:00 [INF] Content root path: D:\zack\BabyLog\Backend\BabyLog\BabyLog
+2025-10-16 15:46:14.143 +08:00 [ERR] Error uploading multiple files
+System.ArgumentNullException: Value cannot be null. (Parameter 'files')
+   at BabyLog.Controllers.FilesController.UploadFiles(List`1 files) in D:\zack\BabyLog\Backend\BabyLog\BabyLog\Controllers\FilesController.cs:line 115
+2025-10-16 15:46:14.161 +08:00 [ERR] HTTP POST /api/Files/upload-multiple responded 500 in 2846.8178 ms

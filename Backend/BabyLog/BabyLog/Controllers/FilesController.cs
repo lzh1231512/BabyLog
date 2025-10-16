@@ -112,12 +112,13 @@ namespace BabyLog.Controllers
             {
                 if (files == null || files.Count == 0)
                 {
-                    return BadRequest(new ApiResponse<object>
-                    {
-                        Success = false,
-                        Data = null,
-                        Message = "未收到有效文件"
-                    });
+                    throw new ArgumentNullException(nameof(files));
+                    //return BadRequest(new ApiResponse<object>
+                    //{
+                    //    Success = false,
+                    //    Data = null,
+                    //    Message = "未收到有效文件"
+                    //});
                 }
 
                 // Clean up old files first
@@ -777,7 +778,7 @@ namespace BabyLog.Controllers
             return Ok(new ApiResponse<object>
             {
                 Success = true,
-                Data = new { Rotation = rotation },
+                Data = new { rotation = rotation },
                 Message = "获取视频旋转信息成功"
             });
         }
