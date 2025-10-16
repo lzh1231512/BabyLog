@@ -717,6 +717,7 @@ namespace BabyLog.Controllers
             }
         }
 
+        [HttpGet("getVideoRotation")]
         public IActionResult GetVideoRotation([FromQuery] int? id, [FromQuery] string fileName)
         {
             if (string.IsNullOrEmpty(fileName))
