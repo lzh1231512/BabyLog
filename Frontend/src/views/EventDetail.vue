@@ -208,17 +208,12 @@
       <div class="modal-content" @click.stop>
         <button class="modal-close" @click="closeVideoPlayer">✕</button>
         <div class="video-player">
-          <video 
-            ref="videoPlayerRef"
-            :src="getVideoUrl(event.id, currentVideo?.fileName)"
-            class="modal-video"
-            controls
-            autoplay
+          <vue3VideoPlay
+            v-bind="videoOptions"
             @ended="onVideoEnded"
             @error="onVideoError"
-          >
-            您的浏览器不支持视频播放
-          </video>
+            class="modal-video"
+          />
           <div class="video-info">
             <h3 class="video-title">{{ currentVideo?.desc || '视频' }}</h3>
             <div class="video-controls">
@@ -234,14 +229,19 @@
 </template>
 
 <script>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import { getEventById, deleteEvent, getMediaUrl,getVideoUrl } from '@/api/events'
 import { createPhotoViewerGesture } from '@/utils/touchGestureManager'
+import vue3VideoPlay from 'vue3-video-play'
+import 'vue3-video-play/dist/style.css'
 
 export default {
   name: 'EventDetail',
+  components: {
+    vue3VideoPlay
+  },
   setup() {
     const route = useRoute()
     const router = useRouter()
@@ -253,7 +253,6 @@ export default {
     const showVideoPlayer = ref(false)
     const currentVideoIndex = ref(0)
     const currentVideo = ref(null)
-    const videoPlayerRef = ref(null)
     const currentPlayingAudio = ref(-1)
     const isAudioPlaying = ref(false)
     const isAudioLoading = ref(false)
@@ -274,6 +273,31 @@ export default {
     
     // 触摸手势管理器
     const gestureManager = ref(null)
+    
+    // 视频播放器配置
+    const videoOptions = computed(() => ({
+      width: '100%',
+      height: 'auto',
+      color: '#409eff',
+      title: currentVideo.value?.desc || '视频播放',
+      src: currentVideo.value ? getVideoUrl(event.value.id, currentVideo.value.fileName) : '',
+      muted: false,
+      webFullScreen: true,
+      speedRate: ["0.75", "1.0", "1.25", "1.5"],
+      autoPlay: true,
+      loop: false,
+      mirror: false,
+      volume: 0.7,
+      control: true,
+      controlBtns: [
+        'quality',
+        'speedRate', 
+        'volume',
+        'pip',
+        'pageFullScreen',
+        'fullScreen'
+      ]
+    }))
 
     // 获取事件详情
     const loadEventDetail = async () => {
@@ -464,9 +488,7 @@ export default {
     // 关闭视频播放器
     const closeVideoPlayer = () => {
       showVideoPlayer.value = false
-      if (videoPlayerRef.value) {
-        videoPlayerRef.value.pause()
-      }
+      // vue3-video-play 组件会自动处理暂停
     }
 
     // 上一个视频
@@ -738,7 +760,6 @@ export default {
       showVideoPlayer,
       currentVideoIndex,
       currentVideo,
-      videoPlayerRef,
       currentPlayingAudio,
       isAudioPlaying,
       isAudioLoading,
@@ -794,7 +815,9 @@ export default {
       resetZoom,
       handleDoubleClick,
       // 手势管理器
-      gestureManager
+      gestureManager,
+      // 视频播放器配置
+      videoOptions
     }
   }
 }
@@ -1276,6 +1299,23 @@ export default {
   z-index: 1000;
 }
 
+/* 视频模态框特定样式 */
+.video-modal {
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.video-modal .modal-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+}
+
 .modal-content {
   position: relative;
   max-width: 90vw;
@@ -1442,17 +1482,38 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   max-width: 90vw;
   max-height: 90vh;
+  width: 100%;
+  height: 100%;
 }
 
 .modal-video {
   max-width: 100%;
   max-height: 70vh;
+  width: auto;
+  height: auto;
   border-radius: 10px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  object-fit: contain;
+  /* vue3-video-play 组件样式覆盖 */
+}
+
+/* vue3-video-play 组件内部视频元素样式覆盖 */
+.modal-video :deep(video) {
+  object-fit: contain !important;
+  object-position: center !important;
   background: #000;
+  transform: none !important;
+  /* 防止视频旋转和变形 */
+  -webkit-transform: none !important;
+  -moz-transform: none !important;
+  -ms-transform: none !important;
+  -o-transform: none !important;
+  max-width: 100% !important;
+  max-height: 70vh !important;
+  width: auto !important;
+  height: auto !important;
 }
 
 .video-info {
@@ -1585,19 +1646,128 @@ export default {
     padding: 15px 10px;
   }
   
+  /* 确保视频模态框关闭按钮正确显示 */
+  .video-modal .modal-close {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    font-size: 18px;
+    padding: 8px 10px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 1002;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
   .modal-video {
     max-height: 60vh;
+    max-width: 95vw;
     width: auto;
     height: auto;
+    margin-bottom: 15px;
+  }
+  
+  /* 移动端 vue3-video-play 组件内部视频元素样式 */
+  .modal-video :deep(video) {
+    object-fit: contain !important;
+    object-position: center !important;
+    transform: none !important;
+    /* 移动端防止视频旋转和变形 */
+    -webkit-transform: none !important;
+    -moz-transform: none !important;
+    -ms-transform: none !important;
+    -o-transform: none !important;
+    max-height: 60vh !important;
+    max-width: 95vw !important;
+  }
+  
+  /* 移动端视频播放器容器优化 */
+  .video-player {
+    padding: 0 10px;
+    max-width: 100vw;
+    max-height: 100vh;
+    box-sizing: border-box;
+  }
+  
+  .video-info {
+    margin-top: 10px;
+    width: 100%;
+    max-width: 95vw;
   }
   
   .video-controls {
     flex-direction: column;
-    gap: 10px;
+    gap: 15px;
+    align-items: center;
+    width: 100%;
+    padding: 0 20px;
+  }
+  
+  /* 视频控制按钮移动端样式 */
+  .video-controls .nav-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    font-size: 14px;
+    padding: 10px 20px;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 100px;
+    text-align: center;
+    position: static;
+    transform: none;
+    z-index: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .video-controls .nav-btn:hover,
+  .video-controls .nav-btn:active {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: none;
+  }
+  
+  .video-controls .nav-btn:active {
+    background: rgba(255, 255, 255, 0.35);
+    transform: scale(0.98);
+  }
+  
+  .video-controls .nav-btn.prev,
+  .video-controls .nav-btn.next {
+    position: static;
+    left: auto;
+    right: auto;
+    top: auto;
+    min-height: auto;
+    min-width: 100px;
   }
   
   .video-title {
     font-size: 16px;
+    margin-bottom: 10px;
+    text-align: center;
+    padding: 0 20px;
+  }
+  
+  /* 视频计数器移动端样式 */
+  .video-counter {
+    font-size: 13px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    color: white;
+    margin: 5px 0;
   }
   
   .action-buttons {
@@ -1646,6 +1816,28 @@ export default {
     top: -35px;
     font-size: 20px;
     padding: 8px;
+  }
+  
+  /* 超小屏幕视频控制优化 */
+  .video-controls .nav-btn {
+    font-size: 12px;
+    padding: 8px 16px;
+    min-width: 80px;
+  }
+  
+  .video-counter {
+    font-size: 12px;
+    padding: 4px 10px;
+  }
+  
+  .video-title {
+    font-size: 14px;
+    padding: 0 15px;
+  }
+  
+  .video-controls {
+    gap: 10px;
+    padding: 0 15px;
   }
 }
 </style>
