@@ -716,6 +716,70 @@ namespace BabyLog.Controllers
                 });
             }
         }
+
+        public IActionResult GetVideoRotation([FromQuery] int? id, [FromQuery] string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName))
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Data = null,
+                    Message = "文件名不能为空"
+                });
+            }
+
+            if (!id.HasValue)
+            {
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Data = null,
+                    Message = "需要指定事件ID"
+                });
+            }
+
+            // 查找视频文件路径
+            string filePath = null;
+
+            // 先检查临时文件目录
+            var tempFilePath = Path.Combine(_env.ContentRootPath, "TempFile", fileName);
+            if (System.IO.File.Exists(tempFilePath))
+            {
+                filePath = tempFilePath;
+            }
+            // 再检查事件目录
+            else
+            {
+                var eventsFilePath = Path.Combine(_env.ContentRootPath, "Events", id.Value.ToString(), fileName);
+                if (System.IO.File.Exists(eventsFilePath))
+                {
+                    filePath = eventsFilePath;
+                }
+            }
+
+            if (filePath == null)
+            {
+                return NotFound(new ApiResponse<object>
+                {
+                    Success = false,
+                    Data = null,
+                    Message = "文件不存在"
+                });
+            }
+
+
+            var mediaInfo = FFProbe.Analyse(filePath);
+
+            var rotation = mediaInfo.PrimaryVideoStream?.Rotation??0;
+
+            return Ok(new ApiResponse<object>
+            {
+                Success = true,
+                Data = new { Rotation = rotation },
+                Message = "获取视频旋转信息成功"
+            });
+        }
     }
         
 }
