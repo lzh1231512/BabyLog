@@ -29,6 +29,25 @@
       </div>
     </header>
 
+    <!-- 视频测试按钮 -->
+    <div class="video-test-buttons">
+      <h3>视频播放测试</h3>
+      <div class="button-group">
+        <button @click="$router.push('/video-test-1')" class="test-btn">
+          测试1: Video标签 (downloadVideo)
+        </button>
+        <button @click="$router.push('/video-test-2')" class="test-btn">
+          测试2: Video标签 (download)
+        </button>
+        <button @click="$router.push('/video-test-3')" class="test-btn">
+          测试3: vue3VideoPlay (downloadVideo)
+        </button>
+        <button @click="$router.push('/video-test-4')" class="test-btn">
+          测试4: vue3VideoPlay (download)
+        </button>
+      </div>
+    </div>
+
     <!-- 时间线 -->
     <div class="timeline-container">
       <div class="timeline-header">
@@ -545,6 +564,48 @@ export default {
   margin-top: 5px;
 }
 
+/* 视频测试按钮 */
+.video-test-buttons {
+  background: white;
+  border-radius: 20px;
+  padding: 25px;
+  margin: 0 auto 30px auto;
+  max-width: 800px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.video-test-buttons h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 20px 0;
+  text-align: center;
+}
+
+.button-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.test-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  text-align: center;
+}
+
+.test-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
 /* 时间线 */
 .timeline-container {
   max-width: 800px;
@@ -878,6 +939,19 @@ export default {
 
   .timeline-title {
     text-align: center;
+  }
+
+  .video-test-buttons {
+    padding: 20px;
+  }
+
+  .button-group {
+    grid-template-columns: 1fr;
+  }
+
+  .test-btn {
+    font-size: 13px;
+    padding: 10px 15px;
   }
 }
 </style>
