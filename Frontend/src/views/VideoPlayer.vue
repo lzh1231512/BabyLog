@@ -58,25 +58,14 @@
 
         <div 
           ref="videoContainer" 
-          class="video-js-container"
-          :style="{ transform: `rotate(${currentRotation}deg)` }"
+          class="xgplayer-container"
           v-if="currentVideo"
         >
-          <video
+          <div
+            :id="`xg-player-${event.id}-${currentVideoIndex}`"
             ref="videoPlayer"
-            class="video-js vjs-default-skin"
-            controls
-            preload="auto"
-            :data-setup="JSON.stringify(videoJsOptions)"
             :key="`video-${event.id}-${currentVideoIndex}`"
-          >
-            <p class="vjs-no-js">
-              您的浏览器不支持视频播放。
-              <a href="https://videojs.com/html5-video-support/" target="_blank">
-                请升级您的浏览器
-              </a>
-            </p>
-          </video>
+          ></div>
         </div>
         
         <!-- 视频信息 -->
@@ -119,9 +108,8 @@
 import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import dayjs from 'dayjs'
-import videojs from 'video.js'
-import 'video.js/dist/video-js.css'
-import { getEventById, getVideoRotation, getVideoUrl, getMediaUrl } from '@/api/events'
+import Player from 'xgplayer'
+import { getEventById, getVideoUrl, getMediaUrl } from '@/api/events'
 import { loadConfig } from '@/config'
 
 export default {
@@ -134,7 +122,6 @@ export default {
     const currentVideo = ref(null)
     const currentVideoIndex = ref(0)
     const videoList = ref([])
-    const currentRotation = ref(0)
     const loading = ref(true)
     const error = ref('')
     
@@ -195,14 +182,17 @@ export default {
       })
     }
 
-    const videoJsOptions = {
+    const xgPlayerOptions = ref({
       fluid: true,
-      responsive: true,
-      aspectRatio: '16:9',
-      playbackRates: [0.5, 1, 1.25, 1.5, 2],
+      rotate: true,
+      fitVideoSize: 'auto',
+      width: '100%',
+      height: 'auto',
+      playbackRate: [0.5, 1, 1.25, 1.5, 2],
       controls: true,
-      preload: 'auto'
-    }
+      preload: 'auto',
+      playsinline: true
+    })
 
     // 加载视频数据
     const loadVideoData = async () => {
@@ -249,9 +239,6 @@ export default {
         currentVideo.value = videoList.value[currentVideoIndex.value]
         addLog(`当前视频: ${currentVideo.value.fileName} (索引: ${currentVideoIndex.value})`, 'info')
         
-        // 获取视频旋转角度
-        await loadVideoRotation()
-        
         // DOM 更新后，watch 会自动调用 initializePlayer
         addLog('等待DOM更新和播放器初始化...', 'info')
         
@@ -264,54 +251,28 @@ export default {
       }
     }
 
-    // 获取视频旋转角度
-    const loadVideoRotation = async () => {
-      try {
-        addLog('正在获取视频旋转角度...', 'info')
-        const response = await getVideoRotation(event.value.id, currentVideo.value.fileName)
-        if (response.success && response.data !== null) {
-          // 检查 response.data 是否是数字还是对象
-          if (typeof response.data === 'number') {
-            currentRotation.value = response.data
-          } else if (response.data.rotation !== undefined) {
-            currentRotation.value = response.data.rotation
-          } else {
-            currentRotation.value = 0
-          }
-          addLog(`视频旋转角度: ${currentRotation.value}度`, 'success')
-        } else {
-          currentRotation.value = 0
-          addLog('使用默认旋转角度: 0度', 'info')
-        }
-      } catch (err) {
-        addLog(`获取视频旋转角度失败: ${err.message}`, 'warning')
-        console.warn('获取视频旋转角度失败:', err)
-        currentRotation.value = 0
-      }
-    }
 
-    // 初始化Video.js播放器
+
+    // 初始化西瓜播放器
     const initializePlayer = async () => {
-      addLog('开始初始化Video.js播放器...', 'info')
+      addLog('开始初始化西瓜播放器...', 'info')
       
       if (player) {
         addLog('清理旧的播放器实例', 'info')
-        player.dispose()
+        player.destroy()
         player = null
       }
 
       try {
-        // 等待视频元素可用
-        addLog('等待视频元素可用...', 'info')
+        // 等待容器元素可用
+        addLog('等待容器元素可用...', 'info')
         await waitForElement(videoPlayer, 3000)
         
-        addLog(`视频元素已找到: ${videoPlayer.value.tagName}`, 'success')
-        addLog(`视频元素类名: ${videoPlayer.value.className}`, 'info')
+        addLog(`容器元素已找到: ${videoPlayer.value.tagName}`, 'success')
+        addLog(`容器元素ID: ${videoPlayer.value.id}`, 'info')
       } catch (err) {
-        addLog(`等待视频元素失败: ${err.message}`, 'error')
-        addLog(`DOM中video元素数量: ${document.querySelectorAll('video').length}`, 'info')
-        addLog(`DOM中.video-js元素数量: ${document.querySelectorAll('.video-js').length}`, 'info')
-        error.value = '视频播放器初始化失败：视频元素未找到'
+        addLog(`等待容器元素失败: ${err.message}`, 'error')
+        error.value = '视频播放器初始化失败：容器元素未找到'
         return
       }
 
@@ -319,94 +280,77 @@ export default {
         const videoUrl = getVideoUrl(event.value.id, currentVideo.value.fileName)
         addLog(`生成的视频URL: ${videoUrl}`, 'info')
 
-        player = videojs(videoPlayer.value, videoJsOptions, () => {
-          addLog('Video.js播放器初始化成功', 'success')
-          console.log('Video.js player initialized')
-          
-          // 设置视频源
-          addLog('设置视频源...', 'info')
-          player.src({
-            src: videoUrl,
-            type: 'video/mp4'
-          })
-          
-          // 添加事件监听
-          player.on('loadstart', () => {
-            addLog('开始加载视频', 'info')
-          })
+        // 配置西瓜播放器选项
+        const playerConfig = {
+          ...xgPlayerOptions.value,
+          id: videoPlayer.value.id,
+          url: videoUrl,
+          el: videoPlayer.value
+        }
 
-          player.on('loadeddata', () => {
-            addLog('视频数据已加载', 'success')
-          })
-          
-          player.on('loadedmetadata', () => {
-            addLog('视频元数据已加载', 'success')
-            const duration = player.duration()
-            addLog(`视频时长: ${duration}秒`, 'info')
-          })
+        addLog('正在初始化西瓜播放器...', 'info')
+        player = new Player(playerConfig)
+        
+        addLog('西瓜播放器初始化成功', 'success')
+        console.log('XGPlayer initialized')
 
-          player.on('canplay', () => {
-            addLog('视频可以开始播放', 'success')
-          })
-
-          player.on('canplaythrough', () => {
-            addLog('视频已缓冲足够，可以流畅播放', 'success')
-          })
-
-          player.on('play', () => {
-            addLog('视频开始播放', 'success')
-          })
-
-          player.on('pause', () => {
-            addLog('视频暂停', 'info')
-          })
-
-          player.on('waiting', () => {
-            addLog('视频缓冲中...', 'warning')
-          })
-
-          player.on('stalled', () => {
-            addLog('视频加载停滞', 'warning')
-          })
-          
-          player.on('error', (e) => {
-            const playerError = player.error()
-            let errorMsg = '未知错误'
-            if (playerError) {
-              switch (playerError.code) {
-                case 1:
-                  errorMsg = '视频加载被用户中止'
-                  break
-                case 2:
-                  errorMsg = '网络错误导致视频下载失败'
-                  break
-                case 3:
-                  errorMsg = '视频解码失败'
-                  break
-                case 4:
-                  errorMsg = '视频格式不支持'
-                  break
-                default:
-                  errorMsg = `播放器错误 (代码: ${playerError.code})`
-              }
-            }
-            addLog(`Video.js播放器错误: ${errorMsg}`, 'error')
-            console.error('Video.js player error:', e, playerError)
-            error.value = `视频播放失败: ${errorMsg}`
-          })
-          
-          player.on('ended', () => {
-            addLog('视频播放结束', 'info')
-            console.log('Video ended')
-            // 自动播放下一个视频
-            if (currentVideoIndex.value < videoList.value.length - 1) {
-              switchVideo(currentVideoIndex.value + 1)
-            }
-          })
+        // 添加事件监听
+        player.on('loadstart', () => {
+          addLog('开始加载视频', 'info')
         })
+
+        player.on('loadeddata', () => {
+          addLog('视频数据已加载', 'success')
+        })
+        
+        player.on('loadedmetadata', () => {
+          addLog('视频元数据已加载', 'success')
+          const duration = player.duration
+          addLog(`视频时长: ${duration}秒`, 'info')
+        })
+
+        player.on('canplay', () => {
+          addLog('视频可以开始播放', 'success')
+        })
+
+        player.on('canplaythrough', () => {
+          addLog('视频已缓冲足够，可以流畅播放', 'success')
+        })
+
+        player.on('play', () => {
+          addLog('视频开始播放', 'success')
+        })
+
+        player.on('pause', () => {
+          addLog('视频暂停', 'info')
+        })
+
+        player.on('waiting', () => {
+          addLog('视频缓冲中...', 'warning')
+        })
+
+        player.on('stalled', () => {
+          addLog('视频加载停滞', 'warning')
+        })
+        
+        player.on('error', (e) => {
+          addLog(`西瓜播放器错误: ${e.message || '未知错误'}`, 'error')
+          console.error('XGPlayer error:', e)
+          error.value = `视频播放失败: ${e.message || '未知错误'}`
+        })
+        
+        player.on('ended', () => {
+          addLog('视频播放结束', 'info')
+          console.log('Video ended')
+          // 自动播放下一个视频
+          if (currentVideoIndex.value < videoList.value.length - 1) {
+            switchVideo(currentVideoIndex.value + 1)
+          }
+        })
+
       } catch (err) {
-        addLog(`Video.js初始化失败: ${err.message}`, 'error')
-        console.error('Failed to initialize Video.js:', err)
+        addLog(`西瓜播放器初始化失败: ${err.message}`, 'error')
+        console.error('Failed to initialize XGPlayer:', err)
         error.value = '视频播放器初始化失败'
       }
     }
@@ -469,6 +413,8 @@ export default {
       }
     }
 
+
+
     // 切换视频
     const switchVideo = async (index) => {
       if (index < 0 || index >= videoList.value.length || index === currentVideoIndex.value) {
@@ -480,17 +426,13 @@ export default {
       currentVideo.value = videoList.value[index]
       addLog(`新视频文件: ${currentVideo.value.fileName}`, 'info')
       
-      // 获取新视频的旋转角度
-      await loadVideoRotation()
-      
       // 更新播放器源
       if (player) {
         const videoUrl = getVideoUrl(event.value.id, currentVideo.value.fileName)
         addLog(`更新播放器源: ${videoUrl}`, 'info')
-        player.src({
-          src: videoUrl,
-          type: 'video/mp4'
-        })
+        
+        // 西瓜播放器切换视频源
+        player.src = videoUrl
         player.play()
       }
       
@@ -533,11 +475,11 @@ export default {
       addLog(`当前环境: ${process.env.NODE_ENV}`, 'info')
       addLog(`用户代理: ${navigator.userAgent}`, 'info')
       
-      // 检查Video.js是否可用
-      if (typeof videojs === 'undefined') {
-        addLog('Video.js未正确加载', 'error')
+      // 检查西瓜播放器是否可用
+      if (typeof Player === 'undefined') {
+        addLog('西瓜播放器未正确加载', 'error')
       } else {
-        addLog(`Video.js版本: ${videojs.VERSION}`, 'success')
+        addLog(`西瓜播放器已加载`, 'success')
       }
       
       loadVideoData()
@@ -546,7 +488,7 @@ export default {
     // 组件卸载时清理
     onBeforeUnmount(() => {
       if (player) {
-        player.dispose()
+        player.destroy()
         player = null
       }
     })
@@ -556,7 +498,6 @@ export default {
       currentVideo,
       currentVideoIndex,
       videoList,
-      currentRotation,
       loading,
       error,
       videoPlayer,
@@ -636,53 +577,46 @@ export default {
   backdrop-filter: blur(20px);
 }
 
-.video-js-container {
+.xgplayer-container {
   margin-bottom: 30px;
   border-radius: 15px;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease;
 }
 
-/* Video.js 样式覆盖 */
-.video-js {
-  width: 100% !important;
-  height: auto !important;
+/* 西瓜播放器样式覆盖 */
+.xgplayer-container :deep(.xgplayer) {
   border-radius: 15px;
   background-color: #000;
 }
 
-.video-js .vjs-big-play-button {
+.xgplayer-container :deep(.xgplayer .xgplayer-start) {
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.8);
   border: 3px solid rgba(255, 255, 255, 0.9);
-  font-size: 2.5em;
-  height: 1.8em;
-  width: 1.8em;
-  line-height: 1.8em;
-  margin-left: -0.9em;
-  margin-top: -0.9em;
   transition: all 0.3s ease;
 }
 
-.video-js:hover .vjs-big-play-button {
+.xgplayer-container :deep(.xgplayer:hover .xgplayer-start) {
   background: rgba(0, 0, 0, 0.9);
   transform: scale(1.1);
 }
 
-.video-js .vjs-control-bar {
+.xgplayer-container :deep(.xgplayer .xgplayer-controls) {
   background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(10px);
   border-radius: 0 0 15px 15px;
 }
 
-.video-js .vjs-progress-control {
+.xgplayer-container :deep(.xgplayer .xgplayer-progress) {
   height: 6px;
 }
 
-.video-js .vjs-play-progress {
+.xgplayer-container :deep(.xgplayer .xgplayer-progress .xgplayer-progress-played) {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
+
+
 
 /* 视频信息 */
 .video-info {
@@ -1041,14 +975,5 @@ export default {
   background: rgba(255, 255, 255, 0.5);
 }
 
-/* 视频旋转样式 */
-.video-js-container[style*="rotate(90deg)"],
-.video-js-container[style*="rotate(270deg)"] {
-  height: 60vw;
-  max-height: 500px;
-}
 
-.video-js-container[style*="rotate(180deg)"] {
-  transform-origin: center;
-}
 </style>

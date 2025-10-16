@@ -38,6 +38,7 @@ namespace BabyLog.Controllers
 
         [HttpPost("upload")]
         [DisableRequestSizeLimit]
+        [RequestSizeLimit(long.MaxValue)]
         [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
         public async Task<IActionResult> UploadFile(IFormFile file)
         {
@@ -105,6 +106,7 @@ namespace BabyLog.Controllers
 
         [HttpPost("upload-multiple")]
         [DisableRequestSizeLimit]
+        [RequestSizeLimit(long.MaxValue)]
         [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
         public async Task<IActionResult> UploadFiles(List<IFormFile> files)
         {
