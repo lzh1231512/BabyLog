@@ -14,4 +14,13 @@
     <PackageReference Include="System.Drawing.Common" Version="9.0.9" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="TempFile\TextFile.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TempFile_Chunk\TextFile.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

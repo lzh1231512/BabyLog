@@ -22,7 +22,7 @@ namespace BabyLog.Controllers
     [Route("api/[controller]")]
     [RequestSizeLimit(long.MaxValue)]
     [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
-    public class FilesController : ControllerBase
+    public partial class FilesController : ControllerBase
     {
         private readonly ILogger<FilesController> _logger;
         private readonly IWebHostEnvironment _env;
@@ -392,7 +392,7 @@ namespace BabyLog.Controllers
             }
         }
 
-        private string GetContentType(string fileName)
+        public static string GetContentType(string fileName)
         {
             var ext = Path.GetExtension(fileName).ToLowerInvariant();
             return ext switch
