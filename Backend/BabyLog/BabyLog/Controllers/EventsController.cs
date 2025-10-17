@@ -119,6 +119,9 @@ namespace BabyLog.Controllers
                 // Process media files - move from TempFile to Events/[id] folder
                 eventData = await ProcessMediaFiles(eventData);
 
+                // Create transcoding tasks for videos
+                await CreateTranscodingTasksForVideos(eventData);
+
                 // Save the event as JSON
                 var eventFilePath = Path.Combine(eventsDirectory, $"{newId}.json");
                 var jsonContent = JsonSerializer.Serialize(eventData, _jsonOptions);
@@ -166,6 +169,9 @@ namespace BabyLog.Controllers
 
                 // Process media files - move from TempFile to Events/[id] folder
                 eventData = await ProcessMediaFiles(eventData);
+
+                // Create transcoding tasks for videos
+                await CreateTranscodingTasksForVideos(eventData);
 
                 // Save the updated event as JSON
                 var jsonContent = JsonSerializer.Serialize(eventData, _jsonOptions);
@@ -218,6 +224,24 @@ namespace BabyLog.Controllers
                     Directory.Delete(eventMediaDir, true);
                 }
 
+                // Delete any HLS transcoded files
+                var hlsDir = Path.Combine(_env.WebRootPath, "m3u8", id.ToString());
+                if (Directory.Exists(hlsDir))
+                {
+                    Directory.Delete(hlsDir, true);
+                }
+
+                // Delete any pending transcoding tasks
+                var tasksDir = Path.Combine(_env.ContentRootPath, "Tasks");
+                if (Directory.Exists(tasksDir))
+                {
+                    var taskFiles = Directory.GetFiles(tasksDir, $"{id}_*");
+                    foreach (var taskFile in taskFiles)
+                    {
+                        System.IO.File.Delete(taskFile);
+                    }
+                }
+
                 return Ok(new BabyLog.Models.ApiResponse<object>
                 {
                     Success = true,
@@ -234,6 +258,44 @@ namespace BabyLog.Controllers
                     Data = null,
                     Message = "É¾³ýÊÂ¼þÊ§°Ü"
                 });
+            }
+        }
+
+        private async Task CreateTranscodingTasksForVideos(Event eventData)
+        {
+            if (eventData?.Media?.Videos == null || !eventData.Media.Videos.Any())
+                return;
+                
+            // Ensure Tasks directory exists
+            var tasksDirectory = Path.Combine(_env.ContentRootPath, "Tasks");
+            if (!Directory.Exists(tasksDirectory))
+            {
+                Directory.CreateDirectory(tasksDirectory);
+            }
+            
+            foreach (var video in eventData.Media.Videos)
+            {
+                if (string.IsNullOrEmpty(video.FileName))
+                    continue;
+                    
+                // Check if video file exists in the event directory
+                var videoPath = Path.Combine(_env.ContentRootPath, "Events", eventData.Id.ToString(), video.FileName);
+                if (!System.IO.File.Exists(videoPath))
+                    continue;
+                    
+                // Check if this video is already processed
+                var processedMarkerPath = Path.Combine(_env.ContentRootPath, "Events", eventData.Id.ToString(), $"{video.FileName}.processed");
+                if (System.IO.File.Exists(processedMarkerPath))
+                    continue;
+                    
+                // Check if there's already a task for this video
+                var taskFilePath = Path.Combine(tasksDirectory, $"{eventData.Id}_{video.FileName}");
+                if (System.IO.File.Exists(taskFilePath))
+                    continue;
+                    
+                // Create a task file for this video
+                await System.IO.File.WriteAllTextAsync(taskFilePath, DateTime.UtcNow.ToString("o"));
+                _logger.LogInformation($"Created transcoding task for Event ID: {eventData.Id}, Video: {video.FileName}");
             }
         }
 

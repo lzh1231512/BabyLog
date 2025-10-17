@@ -1,5 +1,8 @@
 using BabyLog.Extensions;
 using BabyLog.Middleware;
+using BabyLog.Services;
+using Hangfire;
+using Hangfire.MemoryStorage;
 using Microsoft.AspNetCore.ResponseCompression;
 using Serilog;
 using System.IO.Compression;
@@ -89,6 +92,17 @@ namespace BabyLog
                     options.MaxModelBindingCollectionSize = 10000;
                 });
 
+                // Register video transcoding services
+                builder.Services.AddSingleton<VideoTranscodingService>();
+                builder.Services.AddSingleton<VideoTranscodingBackgroundService>();
+
+                // Configure Hangfire
+                builder.Services.AddHangfire(config =>
+                {
+                    config.UseMemoryStorage();
+                });
+                builder.Services.AddHangfireServer();
+
                 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
                 builder.Services.AddOpenApi();
 
@@ -134,6 +148,9 @@ namespace BabyLog
                 if (app.Environment.IsDevelopment())
                 {
                     app.MapOpenApi();
+                    
+                    // Enable Hangfire dashboard only in development
+                    app.UseHangfireDashboard();
                 }
                 else
                 {
@@ -153,7 +170,7 @@ namespace BabyLog
                     {
                         // Disable caching for video files to support range requests better
                         var path = ctx.File.PhysicalPath.ToLower();
-                        if (path.EndsWith(".mp4") || path.EndsWith(".mov"))
+                        if (path.EndsWith(".mp4") || path.EndsWith(".mov") || path.EndsWith(".m3u8") || path.EndsWith(".ts"))
                         {
                             ctx.Context.Response.Headers.Append("Accept-Ranges", "bytes");
                         }
@@ -163,6 +180,10 @@ namespace BabyLog
                 app.UseAuthorization();
 
                 app.MapControllers();
+                
+                // Initialize Hangfire background jobs
+                var backgroundJobService = app.Services.GetRequiredService<VideoTranscodingBackgroundService>();
+                backgroundJobService.ScheduleRecurringTranscodingTasks();
 
                 app.Run();
             }

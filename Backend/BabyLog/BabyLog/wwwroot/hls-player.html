@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HLS 视频播放器</title>
+    <link href="https://cdn.jsdelivr.net/npm/video.js@7.20.3/dist/video-js.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/video.js@7.20.3/dist/video.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/videojs-contrib-hls@5.15.0/dist/videojs-contrib-hls.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Arial', sans-serif;
+        }
+        .video-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .video-js {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16 / 9;
+        }
+        .status-message {
+            text-align: center;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .status-processing {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        .status-ready {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="video-container">
+        <h1>视频播放器</h1>
+        <div id="status-message" class="status-message status-pending">正在检查视频状态...</div>
+        <video id="hlsPlayer" class="video-js vjs-default-skin vjs-big-play-centered" controls preload="auto">
+            <p class="vjs-no-js">
+                要查看此视频，请启用 JavaScript，并考虑升级到支持 HTML5 视频的 Web 浏览器。
+            </p>
+        </video>
+    </div>
+
+    <script>
+        // 获取URL参数
+        function getUrlParameter(name) {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            var results = regex.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        }
+
+        // 初始化视频播放器
+        var player = videojs('hlsPlayer', {
+            controls: true,
+            autoplay: false,
+            preload: 'auto',
+            responsive: true
+        });
+
+        // 获取事件ID和文件名
+        const eventId = getUrlParameter('eventId');
+        const fileName = getUrlParameter('fileName');
+        const statusMessage = document.getElementById('status-message');
+
+        // 检查视频转码状态
+        if (eventId && fileName) {
+            checkVideoStatus();
+            // 每5秒检查一次状态，直到视频准备就绪
+            const statusInterval = setInterval(() => {
+                checkVideoStatus();
+            }, 5000);
+
+            function checkVideoStatus() {
+                fetch(`/api/VideoStreaming/check/${eventId}/${fileName}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (data.data.isTranscoded) {
+                                // 视频已转码完成
+                                clearInterval(statusInterval);
+                                statusMessage.className = 'status-message status-ready';
+                                statusMessage.textContent = '视频已准备就绪，可以播放';
+                                
+                                // 设置视频源
+                                player.src({
+                                    src: data.data.hlsUrl,
+                                    type: 'application/x-mpegURL'
+                                });
+                                player.load();
+                            } else if (data.data.isProcessing) {
+                                // 视频正在转码
+                                statusMessage.className = 'status-message status-processing';
+                                statusMessage.textContent = '视频正在转码处理中，请稍候...';
+                            } else {
+                                // 视频未转码
+                                clearInterval(statusInterval);
+                                statusMessage.className = 'status-message status-error';
+                                statusMessage.textContent = '视频尚未开始转码，请联系管理员';
+                            }
+                        } else {
+                            // API返回错误
+                            clearInterval(statusInterval);
+                            statusMessage.className = 'status-message status-error';
+                            statusMessage.textContent = '获取视频状态失败: ' + data.message;
+                        }
+                    })
+                    .catch(error => {
+                        clearInterval(statusInterval);
+                        statusMessage.className = 'status-message status-error';
+                        statusMessage.textContent = '获取视频状态时出错: ' + error.message;
+                        console.error('Error checking video status:', error);
+                    });
+            }
+        } else {
+            statusMessage.className = 'status-message status-error';
+            statusMessage.textContent = '缺少必要的参数: eventId 和 fileName';
+        }
+    </script>
+</body>
+</html>
