@@ -29,6 +29,25 @@ namespace BabyLog.Services
         {
             _logger = logger;
             _env = env;
+            _configuration = configuration; // 配置实例未赋值
+
+            // 加载转码配置
+            _enableDebugMode = _configuration.GetValue<bool>("VideoTranscoding:EnableDebugMode", false);
+            _debugModeVideoDuration = _configuration.GetValue<int>("VideoTranscoding:DebugModeVideoDuration", 3);
+            _standardCrf = _configuration.GetValue<int>("VideoTranscoding:StandardCrf", 21);
+            _debugCrf = _configuration.GetValue<int>("VideoTranscoding:DebugCrf", 30);
+            _standardPreset = _configuration.GetValue<string>("VideoTranscoding:StandardPreset", "medium");
+            _debugPreset = _configuration.GetValue<string>("VideoTranscoding:DebugPreset", "ultrafast");
+            _standardAudioBitrate = _configuration.GetValue<int>("VideoTranscoding:StandardAudioBitrate", 128);
+            _debugAudioBitrate = _configuration.GetValue<int>("VideoTranscoding:DebugAudioBitrate", 64);
+            _standardResolution = _configuration.GetValue<string>("VideoTranscoding:StandardResolution", "");
+            _debugResolution = _configuration.GetValue<string>("VideoTranscoding:DebugResolution", "480:-2");
+
+            _logger.LogInformation($"视频转码调试模式: {(_enableDebugMode ? "启用" : "禁用")}");
+            if (_enableDebugMode)
+            {
+                _logger.LogInformation($"调试模式参数: 时长={_debugModeVideoDuration}秒, CRF={_debugCrf}, 预设={_debugPreset}, 音频比特率={_debugAudioBitrate}, 分辨率={_debugResolution}");
+            }
         }
 
         // 修复 CS0029 错误：ffmpegArgs = ffmpegArgs.OutputToFile(...) 返回的是 FFMpegArgumentProcessor，而不是 FFMpegArguments。
