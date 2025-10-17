@@ -272,15 +272,14 @@
             @all-completed="handleAllUploadsCompleted"
             ref="chunkUploader"
           />
-          <div class="chunk-uploader-actions">
-            <button 
-              type="button" 
-              class="close-uploader-btn" 
-              @click="closeChunkUploader"
-              :disabled="uploading"
-            >
-              {{ uploading ? '上传中...' : '关闭' }}
-            </button>
+          <!-- 上传状态指示器 -->
+          <div class="chunk-uploader-status">
+            <div v-if="uploading" class="upload-status-indicator">
+              上传中...请等待
+            </div>
+            <div v-else class="upload-status-completed">
+              上传已完成
+            </div>
           </div>
         </div>
       </div>
@@ -414,13 +413,10 @@ export default {
       // 准备文件供ChunkUploader使用
       nextTick(() => {
         if (chunkUploader.value) {
-          // 添加文件到上传组件
+          // 添加文件到上传组件 (将自动开始上传)
           files.forEach(file => {
             chunkUploader.value.addFile(file);
           });
-          
-          // 自动开始上传
-          chunkUploader.value.startUpload();
         }
       });
     }
@@ -473,13 +469,8 @@ export default {
         uploadFiles.value.recordingDuration = null;
       }
       recordingTime.value = 0;
-    }
-    
-    // 关闭分片上传对话框
-    const closeChunkUploader = () => {
-      if (!uploading.value) {
-        showChunkUploader.value = false;
-      }
+      // 隐藏上传区域
+      showChunkUploader.value = false;
     }
 
     // 录音相关方法
@@ -562,11 +553,10 @@ export default {
         showChunkUploader.value = true
         uploading.value = true
         
-        // 添加文件到上传组件并开始上传
+        // 添加文件到上传组件 (会自动开始上传)
         nextTick(() => {
           if (chunkUploader.value) {
             chunkUploader.value.addFile(audioFile);
-            chunkUploader.value.startUpload();
           }
         });
       } catch (err) {
@@ -687,7 +677,6 @@ export default {
       handleAudioUpload,
       handleUploadComplete,
       handleAllUploadsCompleted,
-      closeChunkUploader,
       toggleRecording,
       formatTime,
       removeMedia,
@@ -1149,30 +1138,29 @@ export default {
   text-align: center;
 }
 
-.chunk-uploader-actions {
+.chunk-uploader-status {
   margin-top: 20px;
   display: flex;
   justify-content: center;
+  padding: 10px;
+  text-align: center;
 }
 
-.close-uploader-btn {
-  padding: 10px 20px;
-  background: #3498db;
-  color: white;
-  border: none;
+.upload-status-indicator {
+  color: #3498db;
+  font-weight: bold;
+  padding: 10px;
+  background-color: rgba(52, 152, 219, 0.1);
   border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background 0.3s ease;
+  animation: pulse 1.5s infinite;
 }
 
-.close-uploader-btn:hover:not(:disabled) {
-  background: #2980b9;
-}
-
-.close-uploader-btn:disabled {
-  background: #95a5a6;
-  cursor: not-allowed;
+.upload-status-completed {
+  color: #27ae60;
+  font-weight: bold;
+  padding: 10px;
+  background-color: rgba(39, 174, 96, 0.1);
+  border-radius: 6px;
 }
 
 /* 响应式设计 */

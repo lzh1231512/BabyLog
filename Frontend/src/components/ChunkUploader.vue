@@ -1,24 +1,9 @@
 <template>
   <div class="chunk-uploader">
-    <!-- 上传按钮 -->
-    <div class="upload-button-container">
-      <input
-        type="file"
-        ref="fileInput"
-        @change="handleFileChange"
-        multiple
-        class="file-input"
-      />
-      <button @click="triggerFileInput" class="upload-button">
-        选择文件上传
-      </button>
-    </div>
-
     <!-- 上传进度对话框 -->
-    <div class="upload-dialog" v-if="showUploadDialog">
+    <div class="upload-dialog">
       <div class="upload-dialog-header">
         <h3>文件上传进度</h3>
-        <button @click="closeDialog" class="close-button" :disabled="isUploading">×</button>
       </div>
       <div class="upload-dialog-body">
         <div v-for="(file, index) in uploadTasks" :key="index" class="file-item">
@@ -35,22 +20,6 @@
             <div class="progress-text">{{ file.progress.toFixed(1) }}%</div>
           </div>
         </div>
-      </div>
-      <div class="upload-dialog-footer">
-        <button 
-          @click="startUpload" 
-          :disabled="isUploading || uploadTasks.length === 0 || allTasksCompleted" 
-          class="upload-start-button"
-        >
-          开始上传
-        </button>
-        <button 
-          @click="closeDialog" 
-          :disabled="isUploading" 
-          class="close-button"
-        >
-          关闭
-        </button>
       </div>
     </div>
   </div>
@@ -73,15 +42,14 @@ export default {
       type: Number,
       default: 3
     },
-    // 每个分片大小(bytes) - 默认 2MB
+    // 每个分片大小(bytes) - 默认 512k
     chunkSize: {
       type: Number,
-      default: 2 * 1024 * 1024
+      default:  512 * 1024
     }
   },
   data() {
     return {
-      showUploadDialog: false,
       uploadTasks: [],
       activeUploads: 0,
       isUploading: false
@@ -94,24 +62,7 @@ export default {
     }
   },
   methods: {
-    triggerFileInput() {
-      this.$refs.fileInput.click();
-    },
-    
-    handleFileChange(event) {
-      const files = event.target.files;
-      if (!files || files.length === 0) return;
-      
-      // 添加文件到任务列表
-      Array.from(files).forEach(file => {
-        this.addFile(file);
-      });
-      
-      // 清空文件输入，允许重新选择相同的文件
-      this.$refs.fileInput.value = '';
-    },
-    
-    // 添加单个文件到上传队列
+    // 添加单个文件到上传队列并自动开始上传
     addFile(file) {
       // 创建新任务
       const newTask = {
@@ -130,16 +81,17 @@ export default {
       
       // 添加到任务列表
       this.uploadTasks.push(newTask);
-      this.showUploadDialog = true;
+      
+      // 自动开始计算该文件的MD5并上传
+      if (!this.isUploading) {
+        this.startUpload();
+      }
       
       return newTask;
     },
     
-    closeDialog() {
-      if (this.isUploading) return;
-      
-      // 关闭对话框并清空已完成或错误的任务
-      this.showUploadDialog = false;
+    clearCompletedTasks() {
+      // 清空已完成或错误的任务
       this.uploadTasks = this.uploadTasks.filter(
         task => task.status !== 'completed' && task.status !== 'error'
       );
@@ -427,39 +379,10 @@ export default {
   flex-direction: column;
 }
 
-.file-input {
-  display: none;
-}
-
-.upload-button-container {
-  margin-bottom: 1rem;
-}
-
-.upload-button {
-  padding: 8px 16px;
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.upload-button:hover {
-  background-color: #45a049;
-}
-
 .upload-dialog {
-  position: fixed;
-  z-index: 1000;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 500px;
-  max-width: 90vw;
+  width: 100%;
   background-color: white;
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
 }
@@ -481,14 +404,6 @@ export default {
   padding: 16px;
   max-height: 400px;
   overflow-y: auto;
-}
-
-.upload-dialog-footer {
-  padding: 12px 16px;
-  border-top: 1px solid #eee;
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
 }
 
 .file-item {
@@ -560,34 +475,5 @@ export default {
   font-weight: bold;
 }
 
-.close-button {
-  padding: 5px 10px;
-  background-color: #f1f1f1;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
 
-.close-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.upload-start-button {
-  padding: 8px 16px;
-  background-color: #2196f3;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.upload-start-button:hover:not(:disabled) {
-  background-color: #0b7dda;
-}
-
-.upload-start-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 </style>
