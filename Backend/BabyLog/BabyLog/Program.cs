@@ -182,8 +182,11 @@ namespace BabyLog
                 app.MapControllers();
                 
                 // Initialize Hangfire background jobs
-                var backgroundJobService = app.Services.GetRequiredService<VideoTranscodingBackgroundService>();
-                backgroundJobService.ScheduleRecurringTranscodingTasks();
+                using (var scope = app.Services.CreateScope())
+                {
+                    var backgroundJobService = scope.ServiceProvider.GetRequiredService<VideoTranscodingBackgroundService>();
+                    backgroundJobService.ScheduleRecurringTranscodingTasks();
+                }
 
                 app.Run();
             }

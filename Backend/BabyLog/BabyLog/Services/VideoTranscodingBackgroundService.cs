@@ -14,15 +14,18 @@ namespace BabyLog.Services
         private readonly ILogger<VideoTranscodingBackgroundService> _logger;
         private readonly IWebHostEnvironment _env;
         private readonly VideoTranscodingService _transcodingService;
+        private readonly IRecurringJobManager _recurringJobManager;  // 添加此行
 
         public VideoTranscodingBackgroundService(
             ILogger<VideoTranscodingBackgroundService> logger, 
             IWebHostEnvironment env,
-            VideoTranscodingService transcodingService)
+            VideoTranscodingService transcodingService,
+            IRecurringJobManager recurringJobManager)  // 添加此参数
         {
             _logger = logger;
             _env = env;
             _transcodingService = transcodingService;
+            _recurringJobManager = recurringJobManager;  // 添加此行
         }
 
         [AutomaticRetry(Attempts = 3)]
@@ -104,8 +107,8 @@ namespace BabyLog.Services
         [AutomaticRetry(Attempts = 0)] // Don't retry this job
         public void ScheduleRecurringTranscodingTasks()
         {
-            // This will schedule the transcoding task to run every minute
-            RecurringJob.AddOrUpdate(
+            // 使用注入的 IRecurringJobManager 而不是静态 RecurringJob 类
+            _recurringJobManager.AddOrUpdate(
                 "process-video-transcoding-tasks",
                 () => ProcessVideoTranscodingTasks(),
                 Cron.Minutely);
