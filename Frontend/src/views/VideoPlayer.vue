@@ -9,20 +9,23 @@
     </header>
 
     <!-- 加载状态 -->
-    <div v-if="loading" class="loading">
-      <div class="loading-spinner">⏳</div>
-      <p>正在加载视频...</p>
+    <div v-if="loading" class="loading-overlay">
+      <div class="loading-content">
+        <div class="loading-spinner">⏳</div>
+        <p>正在加载视频...</p>
+      </div>
     </div>
 
     <!-- 错误状态 -->
-    <div v-else-if="error" class="error-container">
+    <div v-if="error" class="error-notification" :class="{ 'transcoding': error.includes('转码中') }">
       <div class="error-icon">⚠️</div>
-      <p>{{ error }}</p>
-      <button class="retry-btn" @click="loadVideoData">重试</button>
+      <p v-html="error"></p>
+      <button v-if="!error.includes('转码中')" class="retry-btn" @click="loadVideoData">重试</button>
+      <button class="close-error-btn" @click="error = ''">关闭</button>
     </div>
 
     <!-- 视频播放器 -->
-    <div v-else-if="event && currentVideo" class="video-container">
+    <div v-if="event && currentVideo" class="video-container">
       <div class="player-wrapper">
         <!-- 调试信息面板 -->
         <div v-if="showDebugLog" class="debug-panel">
@@ -295,10 +298,7 @@ export default {
         // 检查视频是否正在处理中
         if (videoData.isProcessing) {
           addLog('视频正在转码中，请稍后再试', 'warning')
-          error.value = '视频正在转码中，请稍后再试'
-          
-          // 添加一个自动重试按钮
-          error.value = '视频正在转码中，请稍后再试 <button id="retry-transcode" class="retry-transcode-btn">自动重试</button>'
+          error.value = '视频正在转码中，请稍后再试 <span class="retry-transcode-btn" id="retry-transcode">自动重试</span>'
           
           // 添加重试按钮的事件监听器
           setTimeout(() => {
@@ -441,7 +441,9 @@ export default {
             addLog(`视频元素错误信息: ${e.message}`, 'error')
           }
           
-          error.value = `视频播放失败: ${e?.message || JSON.stringify(e) || '未知错误'}`
+          const errorMessage = e?.message || JSON.stringify(e) || '未知错误';
+          addLog(`视频播放失败: ${errorMessage}`, 'error')
+          error.value = `视频播放失败: ${errorMessage}`
         })
         
         player.on('ended', () => {
@@ -596,10 +598,7 @@ export default {
           // 检查视频是否正在处理中
           if (videoData.isProcessing) {
             addLog('视频正在转码中，请稍后再试', 'warning')
-            error.value = '视频正在转码中，请稍后再试'
-            
-            // 添加一个自动重试按钮
-            error.value = '视频正在转码中，请稍后再试 <button id="retry-transcode" class="retry-transcode-btn">自动重试</button>'
+            error.value = '视频正在转码中，请稍后再试 <span class="retry-transcode-btn" id="retry-transcode">自动重试</span>'
             
             // 添加重试按钮的事件监听器
             setTimeout(() => {
@@ -961,12 +960,71 @@ export default {
 }
 
 /* 加载和错误状态 */
-.loading, .error-container {
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1001;
+}
+
+.loading-content {
   text-align: center;
-  padding: 60px 20px;
-  max-width: 800px;
-  margin: 0 auto;
+  padding: 30px 40px;
+  background: rgba(30, 60, 114, 0.9);
+  border-radius: 15px;
   color: white;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.error-notification {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(231, 76, 60, 0.9);
+  border-radius: 10px;
+  padding: 15px 20px;
+  text-align: center;
+  color: white;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  max-width: 90%;
+  backdrop-filter: blur(5px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.error-notification.transcoding {
+  background: rgba(243, 156, 18, 0.9);
+}
+
+.close-error-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-error-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .loading-spinner, .error-icon {
@@ -994,6 +1052,7 @@ export default {
 }
 
 .retry-transcode-btn {
+  display: inline-block;
   background: rgba(52, 152, 219, 0.2);
   border: 1px solid rgba(52, 152, 219, 0.4);
   color: white;
@@ -1058,6 +1117,17 @@ export default {
   .debug-toggle-btn, .test-url-btn {
     font-size: 12px;
     padding: 6px 12px;
+  }
+  
+  .error-notification {
+    top: 60px;
+    padding: 10px 15px;
+    font-size: 14px;
+  }
+  
+  .error-icon {
+    font-size: 32px;
+    margin-bottom: 10px;
   }
 }
 
