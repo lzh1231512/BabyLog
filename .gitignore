@@ -32,3 +32,4 @@ pnpm-debug.log*
 /Release/Events
 /Backend/BabyLog/APITest/bin
 /Backend/BabyLog/APITest/obj
+/Backend/BabyLog/BabyLog/log
