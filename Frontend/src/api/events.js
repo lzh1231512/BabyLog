@@ -275,3 +275,99 @@ export const getStats = async () => {
     }
   }
 }
+
+
+/**
+ * 初始化分块上传
+ * @param {Object} request - 请求参数
+ * 请求参数示例（C#）：
+ * public class InitChunkUploadRequest
+ * {
+ *   public string FileName { get; set; }
+ *   public string FileType { get; set; }
+ *   public long FileSize { get; set; }
+ *   public int ChunkCount { get; set; }
+ *   public string FileMD5 { get; set; }                  // 客户端提供的文件MD5
+ * }
+     * @returns {Promise<Object>} - API响应
+     * 响应示例：（C#）
+ * public class InitChunkUploadResponse
+ * {
+ *   public string TaskId { get; set; }
+ * }
+ */
+export const initChunk = async (request) => {
+  try {
+    const response = await apiClient.post('/api/Chunk/init', request)
+    // 直接返回API响应，因为后端已经是标准格式
+    return response.data
+  } catch (error) {
+    return {
+      success: false,
+      data: null,
+      message: error.response?.data?.message || '创建事件失败'
+    }
+  }
+}
+
+/** 上传分块
+ * @param {string} taskId - 任务ID
+ * @param {number} chunkIndex - 分块索引
+ * @param {File} file - 分块文件
+ * @returns {Promise<Object>} - API响应
+ * 响应示例：（C#）
+ * public class UploadChunkResponse
+ * {
+ *   public int ChunkIndex { get; set; }
+ *   public int CompletedChunks { get; set; }
+ *   public int TotalChunks { get; set; }
+ * }
+ */
+export const unloadChunk = async (taskId, chunkIndex, file) => {
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const response = await apiClient.post(`/api/Chunk/unload?taskId=${encodeURIComponent(taskId)}&chunkIndex=${chunkIndex}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    // 直接返回API响应，因为后端已经是标准格式
+    return response.data
+  } catch (error) {
+    return {
+      success: false,
+      data: null,
+      message: error.response?.data?.message || '创建事件失败'
+    }
+  }
+}
+
+/** 完成分块上传
+ * @param {string} taskId - 任务ID
+ * @returns {Promise<Object>} - API响应
+ * 响应示例：（C#）
+ * public class CompleteChunkUploadResponse
+ * {
+ *   public string OriginalName { get; set; }
+ *   public string ServerFileName { get; set;
+ *   public long Size { get; set; }
+ *   public string MD5 { get; set; }
+ *   public bool MD5Verified { get; set; }
+ *   public string ExpectedMD5 { get; set; }
+ * }
+ */
+export const completeChunk = async (taskId) => {
+  try {
+    const response = await apiClient.post(`/api/Chunk/complete?taskId=${encodeURIComponent(taskId)}`)
+    // 直接返回API响应，因为后端已经是标准格式
+    return response.data
+  } catch (error) {
+    return {
+      success: false,
+      data: null,
+      message: error.response?.data?.message || '创建事件失败'
+    }
+  }
+}
