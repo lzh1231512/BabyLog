@@ -296,6 +296,12 @@ export default {
       // 跳转到添加事件页面
       router.push('/add')
     }
+    
+    const goToChunkUpload = () => {
+      console.log('前往分片上传页面')
+      // 跳转到分片上传页面
+      router.push('/chunk-upload')
+    }
 
     const onSortChange = () => {
       console.log('排序方式改变:', sortAscending.value ? '正序' : '倒序')
@@ -456,6 +462,7 @@ export default {
       error,
       viewEvent,
       addEvent,
+      goToChunkUpload,
       loadEventsList,
       onSortChange,
       getSortPreference,
@@ -804,6 +811,16 @@ export default {
 .fab:hover {
   transform: scale(1.1);
   box-shadow: 0 6px 25px rgba(255, 107, 107, 0.5);
+}
+
+.fab-upload {
+  bottom: 100px;
+  background: linear-gradient(135deg, #4e54c8 0%, #8f94fb 100%);
+  box-shadow: 0 4px 20px rgba(78, 84, 200, 0.4);
+}
+
+.fab-upload:hover {
+  box-shadow: 0 6px 25px rgba(78, 84, 200, 0.5);
 }
 
 /* 加载和错误状态 */

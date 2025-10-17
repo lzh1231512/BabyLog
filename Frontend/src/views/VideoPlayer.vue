@@ -184,14 +184,15 @@ export default {
 
     const xgPlayerOptions = ref({
       fluid: true,
-      rotate: true,
-      fitVideoSize: 'auto',
+      fitVideoSize: 'fixWidth',
       width: '100%',
       height: 'auto',
       playbackRate: [0.5, 1, 1.25, 1.5, 2],
       controls: true,
       preload: 'auto',
-      playsinline: true
+      playsinline: true,
+      autoplay: false,
+      lang: 'zh-cn'
     })
 
     // 加载视频数据
@@ -289,12 +290,19 @@ export default {
         }
 
         addLog('正在初始化西瓜播放器...', 'info')
+        addLog(`播放器配置: ${JSON.stringify(playerConfig, null, 2)}`, 'info')
+        
         player = new Player(playerConfig)
         
         addLog('西瓜播放器初始化成功', 'success')
-        console.log('XGPlayer initialized')
+        addLog(`播放器实例: ${typeof player}`, 'info')
+        console.log('XGPlayer initialized', player)
 
         // 添加事件监听
+        player.on('ready', () => {
+          addLog('播放器准备就绪', 'success')
+        })
+
         player.on('loadstart', () => {
           addLog('开始加载视频', 'info')
         })
@@ -305,8 +313,15 @@ export default {
         
         player.on('loadedmetadata', () => {
           addLog('视频元数据已加载', 'success')
-          const duration = player.duration
-          addLog(`视频时长: ${duration}秒`, 'info')
+          try {
+            const duration = player.duration
+            addLog(`视频时长: ${duration}秒`, 'info')
+            const videoWidth = player.video?.videoWidth || 0
+            const videoHeight = player.video?.videoHeight || 0
+            addLog(`视频尺寸: ${videoWidth}x${videoHeight}`, 'info')
+          } catch (e) {
+            addLog(`获取视频信息失败: ${e.message}`, 'warning')
+          }
         })
 
         player.on('canplay', () => {
@@ -332,11 +347,33 @@ export default {
         player.on('stalled', () => {
           addLog('视频加载停滞', 'warning')
         })
+
+        player.on('emptied', () => {
+          addLog('视频元素已清空', 'warning')
+        })
+
+        player.on('abort', () => {
+          addLog('视频加载被中止', 'warning')
+        })
+
+        player.on('suspend', () => {
+          addLog('视频加载暂停', 'warning')
+        })
         
         player.on('error', (e) => {
-          addLog(`西瓜播放器错误: ${e.message || '未知错误'}`, 'error')
+          addLog(`西瓜播放器错误: ${JSON.stringify(e)}`, 'error')
           console.error('XGPlayer error:', e)
-          error.value = `视频播放失败: ${e.message || '未知错误'}`
+          
+          // 尝试获取更详细的错误信息
+          if (player.video) {
+            const videoError = player.video.error
+            if (videoError) {
+              addLog(`视频元素错误码: ${videoError.code}`, 'error')
+              addLog(`视频元素错误信息: ${videoError.message}`, 'error')
+            }
+          }
+          
+          error.value = `视频播放失败: ${e.message || JSON.stringify(e) || '未知错误'}`
         })
         
         player.on('ended', () => {
@@ -347,6 +384,28 @@ export default {
             switchVideo(currentVideoIndex.value + 1)
           }
         })
+
+        // 添加延迟检查，确保播放器正确渲染
+        setTimeout(() => {
+          addLog('延迟检查播放器状态...', 'info')
+          const videoElement = player.video
+          if (videoElement) {
+            addLog(`视频元素存在: ${videoElement.tagName}`, 'success')
+            addLog(`视频元素src: ${videoElement.src}`, 'info')
+            addLog(`视频元素readyState: ${videoElement.readyState}`, 'info')
+            addLog(`视频元素networkState: ${videoElement.networkState}`, 'info')
+          } else {
+            addLog('未找到视频元素', 'error')
+          }
+          
+          const playerElement = document.querySelector(`#${playerConfig.id}`)
+          if (playerElement) {
+            addLog(`播放器容器存在，子元素数量: ${playerElement.children.length}`, 'info')
+            addLog(`播放器容器内容: ${playerElement.innerHTML.substring(0, 200)}...`, 'info')
+          } else {
+            addLog('未找到播放器容器', 'error')
+          }
+        }, 1000)
 
       } catch (err) {
         addLog(`西瓜播放器初始化失败: ${err.message}`, 'error')

@@ -323,12 +323,12 @@ export const initChunk = async (request) => {
  *   public int TotalChunks { get; set; }
  * }
  */
-export const unloadChunk = async (taskId, chunkIndex, file) => {
+export const uploadChunk = async (taskId, chunkIndex, file) => {
   try {
     const formData = new FormData()
     formData.append('file', file)
 
-    const response = await apiClient.post(`/api/Chunk/unload?taskId=${encodeURIComponent(taskId)}&chunkIndex=${chunkIndex}`, formData, {
+    const response = await apiClient.post(`/api/Chunk/upload?taskId=${encodeURIComponent(taskId)}&chunkIndex=${chunkIndex}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
@@ -339,7 +339,7 @@ export const unloadChunk = async (taskId, chunkIndex, file) => {
     return {
       success: false,
       data: null,
-      message: error.response?.data?.message || '创建事件失败'
+      message: error.response?.data?.message || '上传分块失败'
     }
   }
 }

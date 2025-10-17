@@ -7,6 +7,7 @@ import VideoTest1 from '../views/VideoTest1.vue'
 import VideoTest2 from '../views/VideoTest2.vue'
 import VideoTest3 from '../views/VideoTest3.vue'
 import VideoTest4 from '../views/VideoTest4.vue'
+import ChunkUploadDemo from '../views/ChunkUploadDemo.vue'
 import config from '../config'
 const routes = [
   {
@@ -53,6 +54,11 @@ const routes = [
     path: '/video-test-4',
     name: 'VideoTest4',
     component: VideoTest4
+  },
+  {
+    path: '/chunk-upload',
+    name: 'ChunkUploadDemo',
+    component: ChunkUploadDemo
   }
 ]
 
