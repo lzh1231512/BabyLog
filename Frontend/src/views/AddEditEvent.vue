@@ -281,6 +281,10 @@
               上传已完成
             </div>
           </div>
+          <div v-if="uploading && uploaderStatus.taskCount === 0" class="upload-error">
+            <p>上传组件未正确初始化或未添加文件</p>
+            <button type="button" class="retry-btn" @click="retryUpload">重试上传</button>
+          </div>
         </div>
       </div>
     </div>
@@ -341,6 +345,19 @@ export default {
     // 表单验证
     const isFormValid = computed(() => {
       return formData.value.title.trim() !== '' && formData.value.date !== ''
+    })
+    
+    // 上传组件状态
+    const uploaderStatus = computed(() => {
+      if (!chunkUploader.value) {
+        return { exists: false, taskCount: 0, isUploading: false };
+      }
+      
+      return {
+        exists: true,
+        taskCount: chunkUploader.value.uploadTasks?.length || 0,
+        isUploading: chunkUploader.value.isUploading || false
+      };
     })
 
     // 加载编辑数据
@@ -409,26 +426,42 @@ export default {
         console.log(`文件[${index}]: 名称=${file.name}, 大小=${file.size}字节, 类型=${file.type}`);
       });
       
-      // 显示上传对话框
-      showChunkUploader.value = true;
-      
-      // 设置媒体类型
+      // 保存文件和媒体类型，用于稍后上传
+      uploadFiles.value = [...files]; 
       currentMediaType.value = mediaType;
       
-      // 设置上传中状态
+      // 显示上传对话框
+      showChunkUploader.value = true;
       uploading.value = true;
       
-      // 准备文件供ChunkUploader使用
+      // 使用两层nextTick确保组件完全渲染后再添加文件
+      // 第一个nextTick等待showChunkUploader的变化生效
       nextTick(() => {
-        if (chunkUploader.value) {
-          console.log('将文件添加到上传组件');
-          // 添加文件到上传组件 (将自动开始上传)
-          files.forEach(file => {
-            chunkUploader.value.addFile(file);
-          });
-        } else {
-          console.error('上传组件引用不存在!');
-        }
+        console.log('第一个nextTick: 检查上传组件是否存在:', !!chunkUploader.value);
+        
+        // 第二个nextTick确保组件已完全初始化
+        nextTick(() => {
+          console.log('第二个nextTick: 再次检查组件:', !!chunkUploader.value);
+          
+          if (chunkUploader.value) {
+            console.log('添加文件到上传组件');
+            // 添加保存的文件到上传组件
+            uploadFiles.value.forEach((file, index) => {
+              console.log(`添加文件[${index}]: ${file.name} 到上传组件`);
+              try {
+                chunkUploader.value.addFile(file);
+                console.log(`文件[${index}]添加成功`);
+              } catch (error) {
+                console.error(`添加文件[${index}]失败:`, error);
+              }
+            });
+          } else {
+            console.error('两次nextTick后组件引用仍不存在!');
+            // 尝试直接获取组件
+            const uploader = document.querySelector('.chunk-uploader');
+            console.log('DOM中是否存在上传组件:', !!uploader);
+          }
+        });
       });
     }
     
@@ -501,6 +534,33 @@ export default {
         console.log('隐藏上传区域');
         showChunkUploader.value = false;
       }, 1000);
+    }
+    
+    // 重试上传
+    const retryUpload = () => {
+      console.log('重试上传, 文件数:', uploadFiles.value.length);
+      
+      if (!uploadFiles.value || uploadFiles.value.length === 0) {
+        console.warn('没有待上传文件，无法重试');
+        return;
+      }
+      
+      // 添加小延迟以确保组件已完全初始化
+      nextTick(() => {
+        if (chunkUploader.value) {
+          console.log('尝试重新添加文件到上传组件');
+          uploadFiles.value.forEach((file, index) => {
+            console.log(`重新添加文件[${index}]: ${file.name}`);
+            try {
+              chunkUploader.value.addFile(file);
+            } catch (error) {
+              console.error(`重新添加文件失败:`, error);
+            }
+          });
+        } else {
+          console.error('上传组件仍不可用');
+        }
+      });
     }
 
     // 录音相关方法
@@ -699,6 +759,7 @@ export default {
       showChunkUploader,
       uploadFiles,
       currentMediaType,
+      uploaderStatus,
       triggerImageUpload,
       triggerVideoUpload,
       triggerAudioUpload,
@@ -714,7 +775,9 @@ export default {
       goBack,
       loadEditData,
       getMediaUrl,
-      route
+      route,
+      retryUpload,
+      chunkUploader
     }
   }
 }
@@ -1191,6 +1254,31 @@ export default {
   padding: 10px;
   background-color: rgba(39, 174, 96, 0.1);
   border-radius: 6px;
+}
+
+.upload-error {
+  color: #e74c3c;
+  font-weight: bold;
+  padding: 10px;
+  background-color: rgba(231, 76, 60, 0.1);
+  border-radius: 6px;
+  margin-top: 10px;
+  text-align: center;
+}
+
+.upload-error .retry-btn {
+  margin-top: 10px;
+  padding: 8px 16px;
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: normal;
+}
+
+.upload-error .retry-btn:hover {
+  background-color: #c0392b;
 }
 
 /* 响应式设计 */

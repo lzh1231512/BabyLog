@@ -177,33 +177,52 @@ export default {
     
     // 添加单个文件到上传队列并自动开始上传
     addFile(file) {
-      this.logInfo(`添加文件到上传队列: ${file.name}, 大小: ${this.formatFileSize(file.size)}`);
-      // 创建新任务
-      const newTask = {
-        file,
-        name: file.name,
-        size: file.size,
-        progress: 0,
-        status: 'pending', // pending, calculating, uploading, completed, error
-        error: null,
-        taskId: null,
-        totalChunks: Math.ceil(file.size / this.chunkSize),
-        uploadedChunks: 0,
-        chunkQueue: [],
-        md5: null
-      };
-      
-      // 添加到任务列表
-      this.uploadTasks.push(newTask);
-      
-      // 自动开始计算该文件的MD5并上传
-      if (!this.isUploading) {
-        setTimeout(() => {
-          this.startUpload();
-        }, 100); // 添加小延迟确保DOM已更新
+      try {
+        if (!file) {
+          this.logError('尝试添加文件，但文件对象为空!');
+          return null;
+        }
+        
+        this.logInfo(`添加文件到上传队列: ${file.name}, 大小: ${this.formatFileSize(file.size)}`);
+        
+        // 创建新任务
+        const newTask = {
+          file,
+          name: file.name,
+          size: file.size,
+          progress: 0,
+          status: 'pending', // pending, calculating, uploading, completed, error
+          error: null,
+          taskId: null,
+          totalChunks: Math.ceil(file.size / this.chunkSize),
+          uploadedChunks: 0,
+          chunkQueue: [],
+          md5: null
+        };
+        
+        // 添加到任务列表
+        this.uploadTasks.push(newTask);
+        this.logInfo(`添加成功，当前任务数: ${this.uploadTasks.length}`);
+        
+        // 自动开始计算该文件的MD5并上传
+        if (!this.isUploading) {
+          this.logInfo('启动上传流程');
+          setTimeout(() => {
+            try {
+              this.startUpload();
+            } catch (error) {
+              this.logError(`开始上传过程出错: ${error.message || error}`);
+            }
+          }, 100); // 添加小延迟确保DOM已更新
+        } else {
+          this.logInfo('已有上传任务进行中，新任务将排队等待');
+        }
+        
+        return newTask;
+      } catch (error) {
+        this.logError(`添加文件过程中发生错误: ${error.message || error}`);
+        return null;
       }
-      
-      return newTask;
     },
     
     clearCompletedTasks() {
@@ -233,26 +252,38 @@ export default {
     },
     
     async startUpload() {
-      if (this.isUploading) return;
+      if (this.isUploading) {
+        this.logInfo('已有上传任务进行中，跳过本次调用');
+        return;
+      }
       
       this.logInfo(`开始上传处理, 当前任务数: ${this.uploadTasks.length}`);
       this.isUploading = true;
       
-      // 过滤出需要上传的任务
-      const pendingTasks = this.uploadTasks.filter(task => 
-        task.status === 'pending' || (task.status === 'error' && !task.taskId)
-      );
-      
-      this.logInfo(`待处理任务数: ${pendingTasks.length}`);
-      
-      if (pendingTasks.length === 0) {
+      try {
+        // 过滤出需要上传的任务
+        const pendingTasks = this.uploadTasks.filter(task => 
+          task.status === 'pending' || (task.status === 'error' && !task.taskId)
+        );
+        
+        this.logInfo(`待处理任务数: ${pendingTasks.length}`);
+        
+        if (pendingTasks.length === 0) {
+          this.logInfo('没有待处理的任务，标记上传过程结束');
+          this.isUploading = false;
+          // 检查是否需要触发完成事件
+          this.checkAllTasksCompleted();
+          return;
+        }
+        
+        // 开始计算MD5
+        this.logInfo(`开始处理 ${pendingTasks.length} 个任务的MD5计算`);
+        for (const task of pendingTasks) {
+          await this.calculateFileMD5(task);
+        }
+      } catch (error) {
+        this.logError(`上传处理过程中发生错误: ${error.message || error}`);
         this.isUploading = false;
-        return;
-      }
-      
-      // 开始计算MD5
-      for (const task of pendingTasks) {
-        await this.calculateFileMD5(task);
       }
     },
     
