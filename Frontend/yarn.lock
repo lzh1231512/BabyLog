@@ -1617,6 +1617,11 @@
   dependencies:
     "@types/node" "*"
 
+"@types/video.js@^7.3.58":
+  version "7.3.58"
+  resolved "https://registry.npmjs.org/@types/video.js/-/video.js-7.3.58.tgz"
+  integrity sha512-1CQjuSrgbv1/dhmcfQ83eVyYbvGyqhTvb2Opxr0QCV+iJ4J6/J+XWQ3Om59WiwCd1MN3rDUHasx5XRrpUtewYQ==
+
 "@types/ws@^8.5.5":
   version "8.18.1"
   resolved "https://registry.npmjs.org/@types/ws/-/ws-8.18.1.tgz"

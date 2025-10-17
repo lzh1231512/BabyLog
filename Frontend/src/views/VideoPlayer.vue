@@ -58,14 +58,15 @@
 
         <div 
           ref="videoContainer" 
-          class="xgplayer-container"
+          class="video-js-container"
           v-if="currentVideo"
         >
-          <div
-            :id="`xg-player-${event.id}-${currentVideoIndex}`"
+          <video
+            :id="`video-player-${event.id}-${currentVideoIndex}`"
             ref="videoPlayer"
             :key="`video-${event.id}-${currentVideoIndex}`"
-          ></div>
+            class="video-js vjs-big-play-centered"
+          ></video>
         </div>
         
         <!-- 视频信息 -->
@@ -108,8 +109,9 @@
 import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import dayjs from 'dayjs'
-import Player from 'xgplayer'
-import { getEventById, getVideoUrl, getMediaUrl } from '@/api/events'
+import videojs from 'video.js'
+import 'video.js/dist/video-js.css'
+import { getEventById, getVideoURL, getMediaUrl } from '@/api/events'
 import { loadConfig } from '@/config'
 
 export default {
@@ -182,17 +184,17 @@ export default {
       })
     }
 
-    const xgPlayerOptions = ref({
+    const videoPlayerOptions = ref({
       fluid: true,
-      fitVideoSize: 'fixWidth',
+      responsive: true,
       width: '100%',
       height: 'auto',
-      playbackRate: [0.5, 1, 1.25, 1.5, 2],
+      playbackRates: [0.5, 1, 1.25, 1.5, 2],
       controls: true,
       preload: 'auto',
       playsinline: true,
       autoplay: false,
-      lang: 'zh-cn'
+      language: 'zh-cn'
     })
 
     // 加载视频数据
@@ -254,13 +256,13 @@ export default {
 
 
 
-    // 初始化西瓜播放器
+    // 初始化Video.js播放器
     const initializePlayer = async () => {
-      addLog('开始初始化西瓜播放器...', 'info')
+      addLog('开始初始化Video.js播放器...', 'info')
       
       if (player) {
         addLog('清理旧的播放器实例', 'info')
-        player.destroy()
+        player.dispose()
         player = null
       }
 
@@ -278,28 +280,97 @@ export default {
       }
 
       try {
-        const videoUrl = getVideoUrl(event.value.id, currentVideo.value.fileName)
-        addLog(`生成的视频URL: ${videoUrl}`, 'info')
-
-        // 配置西瓜播放器选项
-        const playerConfig = {
-          ...xgPlayerOptions.value,
-          id: videoPlayer.value.id,
-          url: videoUrl,
-          el: videoPlayer.value
+        addLog('获取视频URL...', 'info')
+        const videoUrlResponse = await getVideoURL(event.value.id, currentVideo.value.fileName)
+        
+        if (!videoUrlResponse.success) {
+          addLog(`获取视频URL失败: ${videoUrlResponse.message}`, 'error')
+          error.value = videoUrlResponse.message || '获取视频URL失败'
+          return
         }
 
-        addLog('正在初始化西瓜播放器...', 'info')
+        const videoData = videoUrlResponse.data
+        addLog(`视频状态: ${JSON.stringify(videoData)}`, 'info')
+
+        // 检查视频是否正在处理中
+        if (videoData.isProcessing) {
+          addLog('视频正在转码中，请稍后再试', 'warning')
+          error.value = '视频正在转码中，请稍后再试'
+          
+          // 添加一个自动重试按钮
+          error.value = '视频正在转码中，请稍后再试 <button id="retry-transcode" class="retry-transcode-btn">自动重试</button>'
+          
+          // 添加重试按钮的事件监听器
+          setTimeout(() => {
+            const retryBtn = document.getElementById('retry-transcode')
+            if (retryBtn) {
+              retryBtn.addEventListener('click', () => {
+                addLog('自动重试转码检查...', 'info')
+                // 设置定时器每3秒检查一次转码状态
+                let checkCount = 0
+                const maxChecks = 20 // 最多检查20次，约1分钟
+                
+                const checkInterval = setInterval(async () => {
+                  checkCount++
+                  addLog(`第${checkCount}次检查转码状态...`, 'info')
+                  
+                  try {
+                    const response = await getVideoURL(event.value.id, currentVideo.value.fileName)
+                    if (response.success && response.data) {
+                      if (!response.data.isProcessing && response.data.isTranscoded) {
+                        addLog('视频转码已完成', 'success')
+                        clearInterval(checkInterval)
+                        initializePlayer()
+                      } else if (checkCount >= maxChecks) {
+                        addLog('达到最大检查次数，停止检查', 'warning')
+                        error.value = '视频转码时间过长，请稍后刷新页面重试'
+                        clearInterval(checkInterval)
+                      } else {
+                        addLog('视频仍在转码中...', 'info')
+                      }
+                    } else {
+                      addLog('检查转码状态失败', 'error')
+                      clearInterval(checkInterval)
+                    }
+                  } catch (err) {
+                    addLog(`检查转码状态出错: ${err.message}`, 'error')
+                    clearInterval(checkInterval)
+                  }
+                }, 3000) // 每3秒检查一次
+              })
+            }
+          }, 100)
+          return
+        }
+
+        // 检查视频是否已转码
+        if (!videoData.isTranscoded) {
+          addLog('视频未经过转码，可能无法正常播放', 'warning')
+        }
+
+        const videoUrl = videoData.hlsUrl
+        addLog(`生成的视频URL: ${videoUrl}`, 'info')
+
+        // 配置Video.js播放器选项
+        const playerConfig = {
+          ...videoPlayerOptions.value,
+          sources: [{
+            src: videoUrl,
+            type: 'application/x-mpegURL' // HLS格式
+          }]
+        }
+
+        addLog('正在初始化Video.js播放器...', 'info')
         addLog(`播放器配置: ${JSON.stringify(playerConfig, null, 2)}`, 'info')
         
-        player = new Player(playerConfig)
+        player = videojs(videoPlayer.value, playerConfig)
         
-        addLog('西瓜播放器初始化成功', 'success')
+        addLog('Video.js播放器初始化成功', 'success')
         addLog(`播放器实例: ${typeof player}`, 'info')
-        console.log('XGPlayer initialized', player)
+        console.log('Video.js initialized', player)
 
         // 添加事件监听
-        player.on('ready', () => {
+        player.ready(() => {
           addLog('播放器准备就绪', 'success')
         })
 
@@ -314,10 +385,10 @@ export default {
         player.on('loadedmetadata', () => {
           addLog('视频元数据已加载', 'success')
           try {
-            const duration = player.duration
+            const duration = player.duration()
             addLog(`视频时长: ${duration}秒`, 'info')
-            const videoWidth = player.video?.videoWidth || 0
-            const videoHeight = player.video?.videoHeight || 0
+            const videoWidth = player.videoWidth() || 0
+            const videoHeight = player.videoHeight() || 0
             addLog(`视频尺寸: ${videoWidth}x${videoHeight}`, 'info')
           } catch (e) {
             addLog(`获取视频信息失败: ${e.message}`, 'warning')
@@ -360,20 +431,17 @@ export default {
           addLog('视频加载暂停', 'warning')
         })
         
-        player.on('error', (e) => {
-          addLog(`西瓜播放器错误: ${JSON.stringify(e)}`, 'error')
-          console.error('XGPlayer error:', e)
+        player.on('error', () => {
+          const e = player.error()
+          addLog(`Video.js播放器错误: ${JSON.stringify(e)}`, 'error')
+          console.error('Video.js error:', e)
           
-          // 尝试获取更详细的错误信息
-          if (player.video) {
-            const videoError = player.video.error
-            if (videoError) {
-              addLog(`视频元素错误码: ${videoError.code}`, 'error')
-              addLog(`视频元素错误信息: ${videoError.message}`, 'error')
-            }
+          if (e) {
+            addLog(`视频元素错误码: ${e.code}`, 'error')
+            addLog(`视频元素错误信息: ${e.message}`, 'error')
           }
           
-          error.value = `视频播放失败: ${e.message || JSON.stringify(e) || '未知错误'}`
+          error.value = `视频播放失败: ${e?.message || JSON.stringify(e) || '未知错误'}`
         })
         
         player.on('ended', () => {
@@ -388,7 +456,7 @@ export default {
         // 添加延迟检查，确保播放器正确渲染
         setTimeout(() => {
           addLog('延迟检查播放器状态...', 'info')
-          const videoElement = player.video
+          const videoElement = player.tech().el()
           if (videoElement) {
             addLog(`视频元素存在: ${videoElement.tagName}`, 'success')
             addLog(`视频元素src: ${videoElement.src}`, 'info')
@@ -398,7 +466,7 @@ export default {
             addLog('未找到视频元素', 'error')
           }
           
-          const playerElement = document.querySelector(`#${playerConfig.id}`)
+          const playerElement = document.querySelector(`#${videoPlayer.value.id}`)
           if (playerElement) {
             addLog(`播放器容器存在，子元素数量: ${playerElement.children.length}`, 'info')
             addLog(`播放器容器内容: ${playerElement.innerHTML.substring(0, 200)}...`, 'info')
@@ -408,8 +476,8 @@ export default {
         }, 1000)
 
       } catch (err) {
-        addLog(`西瓜播放器初始化失败: ${err.message}`, 'error')
-        console.error('Failed to initialize XGPlayer:', err)
+        addLog(`Video.js播放器初始化失败: ${err.message}`, 'error')
+        console.error('Failed to initialize Video.js:', err)
         error.value = '视频播放器初始化失败'
       }
     }
@@ -455,20 +523,45 @@ export default {
         return
       }
 
-      const videoUrl = getVideoUrl(event.value.id, currentVideo.value.fileName)
-      addLog(`测试视频URL: ${videoUrl}`, 'info')
-      
       try {
-        const response = await fetch(videoUrl, { method: 'HEAD' })
-        if (response.ok) {
-          addLog(`URL测试成功 - 状态码: ${response.status}`, 'success')
-          addLog(`内容类型: ${response.headers.get('content-type')}`, 'info')
-          addLog(`内容长度: ${response.headers.get('content-length')} bytes`, 'info')
-        } else {
-          addLog(`URL测试失败 - 状态码: ${response.status}`, 'error')
+        addLog('获取视频URL...', 'info')
+        const videoUrlResponse = await getVideoURL(event.value.id, currentVideo.value.fileName)
+        
+        if (!videoUrlResponse.success) {
+          addLog(`获取视频URL失败: ${videoUrlResponse.message}`, 'error')
+          return
+        }
+
+        const videoData = videoUrlResponse.data
+        addLog(`视频状态: ${JSON.stringify(videoData)}`, 'info')
+        
+        if (videoData.isProcessing) {
+          addLog('视频正在转码中', 'warning')
+          return
+        }
+
+        if (!videoData.isTranscoded) {
+          addLog('视频未经过转码，可能无法正常播放', 'warning')
+        }
+
+        const videoUrl = videoData.hlsUrl
+        addLog(`生成的视频URL: ${videoUrl}`, 'info')
+        
+        // 测试视频URL
+        try {
+          const response = await fetch(videoUrl, { method: 'HEAD' })
+          if (response.ok) {
+            addLog(`URL测试成功 - 状态码: ${response.status}`, 'success')
+            addLog(`内容类型: ${response.headers.get('content-type')}`, 'info')
+            addLog(`内容长度: ${response.headers.get('content-length')} bytes`, 'info')
+          } else {
+            addLog(`URL测试失败 - 状态码: ${response.status}`, 'error')
+          }
+        } catch (err) {
+          addLog(`URL测试错误: ${err.message}`, 'error')
         }
       } catch (err) {
-        addLog(`URL测试错误: ${err.message}`, 'error')
+        addLog(`获取视频URL错误: ${err.message}`, 'error')
       }
     }
 
@@ -487,12 +580,88 @@ export default {
       
       // 更新播放器源
       if (player) {
-        const videoUrl = getVideoUrl(event.value.id, currentVideo.value.fileName)
-        addLog(`更新播放器源: ${videoUrl}`, 'info')
-        
-        // 西瓜播放器切换视频源
-        player.src = videoUrl
-        player.play()
+        try {
+          addLog('获取新视频URL...', 'info')
+          const videoUrlResponse = await getVideoURL(event.value.id, currentVideo.value.fileName)
+          
+          if (!videoUrlResponse.success) {
+            addLog(`获取视频URL失败: ${videoUrlResponse.message}`, 'error')
+            error.value = videoUrlResponse.message || '获取视频URL失败'
+            return
+          }
+
+          const videoData = videoUrlResponse.data
+          addLog(`视频状态: ${JSON.stringify(videoData)}`, 'info')
+
+          // 检查视频是否正在处理中
+          if (videoData.isProcessing) {
+            addLog('视频正在转码中，请稍后再试', 'warning')
+            error.value = '视频正在转码中，请稍后再试'
+            
+            // 添加一个自动重试按钮
+            error.value = '视频正在转码中，请稍后再试 <button id="retry-transcode" class="retry-transcode-btn">自动重试</button>'
+            
+            // 添加重试按钮的事件监听器
+            setTimeout(() => {
+              const retryBtn = document.getElementById('retry-transcode')
+              if (retryBtn) {
+                retryBtn.addEventListener('click', () => {
+                  addLog('自动重试转码检查...', 'info')
+                  // 设置定时器每3秒检查一次转码状态
+                  let checkCount = 0
+                  const maxChecks = 20 // 最多检查20次，约1分钟
+                  
+                  const checkInterval = setInterval(async () => {
+                    checkCount++
+                    addLog(`第${checkCount}次检查转码状态...`, 'info')
+                    
+                    try {
+                      const response = await getVideoURL(event.value.id, currentVideo.value.fileName)
+                      if (response.success && response.data) {
+                        if (!response.data.isProcessing && response.data.isTranscoded) {
+                          addLog('视频转码已完成', 'success')
+                          clearInterval(checkInterval)
+                          switchVideo(currentVideoIndex.value)
+                        } else if (checkCount >= maxChecks) {
+                          addLog('达到最大检查次数，停止检查', 'warning')
+                          error.value = '视频转码时间过长，请稍后刷新页面重试'
+                          clearInterval(checkInterval)
+                        } else {
+                          addLog('视频仍在转码中...', 'info')
+                        }
+                      } else {
+                        addLog('检查转码状态失败', 'error')
+                        clearInterval(checkInterval)
+                      }
+                    } catch (err) {
+                      addLog(`检查转码状态出错: ${err.message}`, 'error')
+                      clearInterval(checkInterval)
+                    }
+                  }, 3000) // 每3秒检查一次
+                })
+              }
+            }, 100)
+            return
+          }
+
+          // 检查视频是否已转码
+          if (!videoData.isTranscoded) {
+            addLog('视频未经过转码，可能无法正常播放', 'warning')
+          }
+
+          const videoUrl = videoData.hlsUrl
+          addLog(`更新播放器源: ${videoUrl}`, 'info')
+          
+          // Video.js切换视频源
+          player.src({
+            src: videoUrl,
+            type: 'application/x-mpegURL' // HLS格式
+          })
+          player.play()
+        } catch (err) {
+          addLog(`切换视频URL错误: ${err.message}`, 'error')
+          error.value = '切换视频失败'
+        }
       }
       
       // 更新URL但不重新加载页面
@@ -534,11 +703,11 @@ export default {
       addLog(`当前环境: ${process.env.NODE_ENV}`, 'info')
       addLog(`用户代理: ${navigator.userAgent}`, 'info')
       
-      // 检查西瓜播放器是否可用
-      if (typeof Player === 'undefined') {
-        addLog('西瓜播放器未正确加载', 'error')
+      // 检查Video.js播放器是否可用
+      if (typeof videojs === 'undefined') {
+        addLog('Video.js播放器未正确加载', 'error')
       } else {
-        addLog(`西瓜播放器已加载`, 'success')
+        addLog(`Video.js播放器已加载`, 'success')
       }
       
       loadVideoData()
@@ -547,7 +716,7 @@ export default {
     // 组件卸载时清理
     onBeforeUnmount(() => {
       if (player) {
-        player.destroy()
+        player.dispose()
         player = null
       }
     })
@@ -573,7 +742,7 @@ export default {
       formatDuration,
       goBack,
       getMediaUrl,
-      getVideoUrl
+      getVideoURL
     }
   }
 }
@@ -636,42 +805,45 @@ export default {
   backdrop-filter: blur(20px);
 }
 
-.xgplayer-container {
+.video-js-container {
   margin-bottom: 30px;
   border-radius: 15px;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
-/* 西瓜播放器样式覆盖 */
-.xgplayer-container :deep(.xgplayer) {
+/* Video.js播放器样式覆盖 */
+.video-js-container :deep(.video-js) {
   border-radius: 15px;
   background-color: #000;
 }
 
-.xgplayer-container :deep(.xgplayer .xgplayer-start) {
+.video-js-container :deep(.video-js .vjs-big-play-button) {
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.8);
   border: 3px solid rgba(255, 255, 255, 0.9);
   transition: all 0.3s ease;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
-.xgplayer-container :deep(.xgplayer:hover .xgplayer-start) {
+.video-js-container :deep(.video-js:hover .vjs-big-play-button) {
   background: rgba(0, 0, 0, 0.9);
-  transform: scale(1.1);
+  transform: translate(-50%, -50%) scale(1.1);
 }
 
-.xgplayer-container :deep(.xgplayer .xgplayer-controls) {
+.video-js-container :deep(.video-js .vjs-control-bar) {
   background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(10px);
   border-radius: 0 0 15px 15px;
 }
 
-.xgplayer-container :deep(.xgplayer .xgplayer-progress) {
+.video-js-container :deep(.video-js .vjs-progress-control) {
   height: 6px;
 }
 
-.xgplayer-container :deep(.xgplayer .xgplayer-progress .xgplayer-progress-played) {
+.video-js-container :deep(.video-js .vjs-play-progress) {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
@@ -815,9 +987,23 @@ export default {
   transition: all 0.2s ease;
 }
 
-.retry-btn:hover {
+.retry-btn:hover,
+.retry-transcode-btn:hover {
   background: rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
+}
+
+.retry-transcode-btn {
+  background: rgba(52, 152, 219, 0.2);
+  border: 1px solid rgba(52, 152, 219, 0.4);
+  color: white;
+  padding: 5px 15px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-left: 10px;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s ease;
 }
 
 /* 响应式设计 */

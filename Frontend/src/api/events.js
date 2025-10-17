@@ -223,12 +223,6 @@ export const getMediaUrl = (id, fileName, thumbnail) => {
   return `${baseURL}/api/Files/download?id=${encodeURIComponent(id)}&fileName=${encodeURIComponent(fileName)}&thumbnail=${thumbnail}`
 }
 
-
-export const getVideoUrl = (id, fileName) => {
-  const baseURL = config.API_BASE_URL
-  return `${baseURL}/api/Files/downloadVideo?id=${encodeURIComponent(id)}&fileName=${encodeURIComponent(fileName)}`
-}
-
 /**
  * 获取统计数据
  */
@@ -368,6 +362,39 @@ export const completeChunk = async (taskId) => {
       success: false,
       data: null,
       message: error.response?.data?.message || '创建事件失败'
+    }
+  }
+}
+
+/** 获取视频文件的播放URL
+ * @param {string} id - 事件ID
+ * @param {string} fileName - 文件名
+ * @returns {Promise<Object>} - API响应
+ * 响应示例：（C#）
+ * public class GetVideoURLResponse
+ * {
+ *   public bool isTranscoded { get; set; }
+ *   public bool isProcessing { get; set; }
+ *   public string hlsUrl { get; set; }
+ * }
+ */
+export const getVideoURL = async (id, fileName) => {
+  try {
+    const response = await apiClient.get(`/api/VideoStreaming/check/${id}/${encodeURIComponent(fileName)}`)
+    // 直接返回API响应，因为后端已经是标准格式
+    return response.data
+  } catch (error) {
+    if (error.response?.status === 404) {
+      return {
+        success: false,
+        data: null,
+        message: '事件不存在'
+      }
+    }
+    return {
+      success: false,
+      data: null,
+      message: error.response?.data?.message || '获取视频旋转角度失败'
     }
   }
 }
