@@ -580,7 +580,7 @@ export default {
         
         if (response.success) {
           // 检查MD5是否匹配
-          if (response.data.md5Verified) {
+          if (response.data.mD5Verified) {
             task.status = 'completed';
             this.logInfo(`文件 ${task.name} 上传完成并验证成功`);
             
@@ -588,7 +588,7 @@ export default {
               fileName: response.data.originalName,
               serverFileName: response.data.serverFileName,
               size: response.data.size,
-              md5: response.data.md5
+              md5: response.data.mD5
             };
             
             this.logInfo(`发出上传完成事件: ${JSON.stringify(fileInfo)}`);
@@ -596,7 +596,7 @@ export default {
           } else {
             this.logError(`MD5验证失败: ${JSON.stringify(response.data)}`);
             task.status = 'error';
-            task.error = `MD5校验失败，期望: ${response.data.expectedMD5}，实际: ${response.data.md5}`;
+            task.error = `MD5校验失败，期望: ${response.data.expectedMD5}，实际: ${response.data.mD5}`;
           }
         } else {
           this.logError(`完成上传失败: ${JSON.stringify(response)}`);
