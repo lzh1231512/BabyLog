@@ -92,6 +92,25 @@ namespace BabyLog
                     options.MaxModelBindingCollectionSize = 10000;
                 });
 
+                // 设置默认的视频转码配置（如果配置文件中没有）
+                if (builder.Configuration.GetSection("VideoTranscoding").GetSection("EnableDebugMode").Value == null)
+                {
+                    builder.Configuration["VideoTranscoding:EnableDebugMode"] = "false";
+                    builder.Configuration["VideoTranscoding:DebugModeVideoDuration"] = "3";
+                    builder.Configuration["VideoTranscoding:StandardCrf"] = "21";
+                    builder.Configuration["VideoTranscoding:DebugCrf"] = "30";
+                    builder.Configuration["VideoTranscoding:StandardPreset"] = "medium";
+                    builder.Configuration["VideoTranscoding:DebugPreset"] = "ultrafast";
+                    builder.Configuration["VideoTranscoding:StandardAudioBitrate"] = "128";
+                    builder.Configuration["VideoTranscoding:DebugAudioBitrate"] = "64";
+                    builder.Configuration["VideoTranscoding:StandardResolution"] = "";
+                    builder.Configuration["VideoTranscoding:DebugResolution"] = "480:-2";
+                }
+
+                // 输出调试模式状态
+                bool enableDebugMode = builder.Configuration.GetValue<bool>("VideoTranscoding:EnableDebugMode", false);
+                Log.Information($"视频转码调试模式: {(enableDebugMode ? "启用" : "禁用")}");
+
                 // Register video transcoding services
                 builder.Services.AddSingleton<VideoTranscodingService>();
                 builder.Services.AddSingleton<VideoTranscodingBackgroundService>();

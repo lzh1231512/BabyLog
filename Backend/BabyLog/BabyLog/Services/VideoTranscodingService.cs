@@ -5,6 +5,7 @@ using FFMpegCore;
 using FFMpegCore.Enums;
 using FFMpegCore.Pipes;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 
 namespace BabyLog.Services
 {
@@ -12,56 +13,83 @@ namespace BabyLog.Services
     {
         private readonly ILogger<VideoTranscodingService> _logger;
         private readonly IWebHostEnvironment _env;
+        private readonly IConfiguration _configuration;
+        private readonly bool _enableDebugMode;
+        private readonly int _debugModeVideoDuration;
+        private readonly int _standardCrf;
+        private readonly int _debugCrf;
+        private readonly string _standardPreset;
+        private readonly string _debugPreset;
+        private readonly int _standardAudioBitrate;
+        private readonly int _debugAudioBitrate;
+        private readonly string _standardResolution;
+        private readonly string _debugResolution;
 
-        public VideoTranscodingService(ILogger<VideoTranscodingService> logger, IWebHostEnvironment env)
+        public VideoTranscodingService(ILogger<VideoTranscodingService> logger, IWebHostEnvironment env, IConfiguration configuration)
         {
             _logger = logger;
             _env = env;
         }
 
+        // 修复 CS0029 错误：ffmpegArgs = ffmpegArgs.OutputToFile(...) 返回的是 FFMpegArgumentProcessor，而不是 FFMpegArguments。
+        // 应将 ffmpegArgs 的类型声明为 FFMpegArgumentProcessor，并且后续调用 ProcessAsynchronously() 也应使用该类型。
+
         public async Task<bool> TranscodeVideoToM3U8(int eventId, string fileName)
         {
             try
             {
-                // Source video path
                 var sourceVideoPath = Path.Combine(_env.ContentRootPath, "Events", eventId.ToString(), fileName);
-                
-                // Target m3u8 folder path
                 var targetFolderPath = Path.Combine(_env.WebRootPath, "m3u8", eventId.ToString(), Path.GetFileNameWithoutExtension(fileName));
-                
-                // Create target directory if it doesn't exist
                 if (!Directory.Exists(targetFolderPath))
                 {
                     Directory.CreateDirectory(targetFolderPath);
                 }
-
-                // Target m3u8 file path
                 var targetM3U8Path = Path.Combine(targetFolderPath, "index.m3u8");
 
                 _logger.LogInformation($"Starting transcoding video: {sourceVideoPath} to HLS format: {targetM3U8Path}");
+                _logger.LogInformation($"转码模式: {(_enableDebugMode ? "调试" : "标准")}");
 
-                // FFmpeg arguments for HLS conversion
-                var arguments = $"-i \"{sourceVideoPath}\" -c:v libx264 -crf 21 -preset medium -c:a aac -b:a 128k " +
-                              $"-hls_time 10 -hls_list_size 0 -hls_segment_filename \"{targetFolderPath}/segment_%03d.ts\" " +
-                              $"\"{targetM3U8Path}\"";
+                // 这里声明 ffmpegProcessor 而不是 ffmpegArgs
+                FFMpegArgumentProcessor ffmpegProcessor;
 
-                // Run FFmpeg with the arguments
-                bool success = await FFMpegArguments
-                    .FromFileInput(sourceVideoPath)
-                    .OutputToFile(targetM3U8Path, true, options => options
-                        .WithVideoCodec("libx264")
-                        .WithConstantRateFactor(21)
-                        .WithAudioCodec("aac")
-                        .WithAudioBitrate(128)
-                        .WithCustomArgument("-hls_time 10 -hls_list_size 0 " +
-                                          $"-hls_segment_filename \"{targetFolderPath}/segment_%03d.ts\""))
-                    .ProcessAsynchronously();
+                if (_enableDebugMode)
+                {
+                    ffmpegProcessor = FFMpegArguments
+                        .FromFileInput(sourceVideoPath)
+                        .OutputToFile(targetM3U8Path, true, options => options
+                            .WithDuration(TimeSpan.FromSeconds(_debugModeVideoDuration))
+                            .WithVideoCodec("libx264")
+                            .WithConstantRateFactor(_debugCrf)
+                            .WithCustomArgument($"-preset {_debugPreset}")
+                            .WithAudioCodec("aac")
+                            .WithAudioBitrate(_debugAudioBitrate)
+                            .WithCustomArgument(_debugResolution.Length > 0 ? $"-vf scale={_debugResolution}" : "")
+                            .WithCustomArgument("-hls_time 3 -hls_list_size 0 " +
+                                                $"-hls_segment_filename \"{targetFolderPath}/segment_%03d.ts\""));
+                    _logger.LogInformation($"使用调试模式转码参数: 时长={_debugModeVideoDuration}秒, CRF={_debugCrf}, 预设={_debugPreset}, 音频比特率={_debugAudioBitrate}kbps");
+                }
+                else
+                {
+                    ffmpegProcessor = FFMpegArguments
+                        .FromFileInput(sourceVideoPath)
+                        .OutputToFile(targetM3U8Path, true, options => options
+                            .WithVideoCodec("libx264")
+                            .WithConstantRateFactor(_standardCrf)
+                            .WithCustomArgument($"-preset {_standardPreset}")
+                            .WithAudioCodec("aac")
+                            .WithAudioBitrate(_standardAudioBitrate)
+                            .WithCustomArgument(_standardResolution.Length > 0 ? $"-vf scale={_standardResolution}" : "")
+                            .WithCustomArgument("-hls_time 10 -hls_list_size 0 " +
+                                                $"-hls_segment_filename \"{targetFolderPath}/segment_%03d.ts\""));
+                    _logger.LogInformation($"使用标准模式转码参数: CRF={_standardCrf}, 预设={_standardPreset}, 音频比特率={_standardAudioBitrate}kbps");
+                }
+
+                // 执行转码
+                bool success = await ffmpegProcessor.ProcessAsynchronously();
 
                 if (success)
                 {
                     _logger.LogInformation($"Successfully transcoded video to HLS: {targetM3U8Path}");
-                    
-                    // Create processed marker file
                     var processedMarkerPath = Path.Combine(_env.ContentRootPath, "Events", eventId.ToString(), $"{fileName}.processed");
                     File.WriteAllText(processedMarkerPath, DateTime.UtcNow.ToString("o"));
                 }
