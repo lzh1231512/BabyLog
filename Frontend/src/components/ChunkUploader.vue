@@ -102,8 +102,19 @@ export default {
       const files = event.target.files;
       if (!files || files.length === 0) return;
       
-      // 创建任务列表
-      const newTasks = Array.from(files).map(file => ({
+      // 添加文件到任务列表
+      Array.from(files).forEach(file => {
+        this.addFile(file);
+      });
+      
+      // 清空文件输入，允许重新选择相同的文件
+      this.$refs.fileInput.value = '';
+    },
+    
+    // 添加单个文件到上传队列
+    addFile(file) {
+      // 创建新任务
+      const newTask = {
         file,
         name: file.name,
         size: file.size,
@@ -115,13 +126,13 @@ export default {
         uploadedChunks: 0,
         chunkQueue: [],
         md5: null
-      }));
+      };
       
-      this.uploadTasks = [...this.uploadTasks, ...newTasks];
+      // 添加到任务列表
+      this.uploadTasks.push(newTask);
       this.showUploadDialog = true;
       
-      // 清空文件输入，允许重新选择相同的文件
-      this.$refs.fileInput.value = '';
+      return newTask;
     },
     
     closeDialog() {

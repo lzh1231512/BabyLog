@@ -259,19 +259,48 @@
           </button>
         </div>
       </form>
+      
+      <!-- 分片上传组件 -->
+      <div v-if="showChunkUploader" class="chunk-uploader-overlay">
+        <div class="chunk-uploader-container">
+          <h3>文件分片上传</h3>
+          <ChunkUploader
+            :maxParallelFiles="3"
+            :maxParallelChunks="3"
+            :chunkSize="2 * 1024 * 1024"
+            @upload-complete="handleUploadComplete"
+            @all-completed="handleAllUploadsCompleted"
+            ref="chunkUploader"
+          />
+          <div class="chunk-uploader-actions">
+            <button 
+              type="button" 
+              class="close-uploader-btn" 
+              @click="closeChunkUploader"
+              :disabled="uploading"
+            >
+              {{ uploading ? '上传中...' : '关闭' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import dayjs from 'dayjs'
-import { getEventById, createEvent, updateEvent, uploadFiles, getMediaUrl } from '@/api/events'
+import { getEventById, createEvent, updateEvent, getMediaUrl } from '@/api/events'
 import AudioRecorder from '@/utils/AudioRecorder'
+import ChunkUploader from '@/components/ChunkUploader.vue'
 
 export default {
   name: 'AddEditEvent',
+  components: {
+    ChunkUploader
+  },
   setup() {
     const route = useRoute()
     const router = useRouter()
@@ -283,6 +312,12 @@ export default {
     const saving = ref(false)
     const uploading = ref(false)
     const error = ref('')
+    
+    // 分片上传相关状态
+    const showChunkUploader = ref(false)
+    const uploadFiles = ref([])
+    const currentMediaType = ref('')
+    const chunkUploader = ref(null) // 分片上传组件的引用
     
     // 录音相关状态
     const isRecording = ref(false)
@@ -362,109 +397,88 @@ export default {
       audioInput.value.click()
     }
 
-    // 处理文件上传
-    const handleImageUpload = async (event) => {
-      const files = Array.from(event.target.files)
-      if (files.length === 0) return
-
-      try {
-        uploading.value = true
-
-        const response = await uploadFiles(files, 'image')
-        
-        if (response.success) {
-          response.data.successful.forEach((uploadedFile, index) => {
-            const originalFile = files[index]
-            formData.value.media.images.push({
-              fileName: uploadedFile.serverFileName, // 使用服务器端文件名
-              desc: originalFile ? originalFile.name : '',
-              size: uploadedFile.size,
-              uploadTime: uploadedFile.uploadTime
-            })
-          })
+    // 处理文件上传 - 使用分片上传
+    // 公共上传处理函数
+    const handleChunkUpload = (files, mediaType) => {
+      if (!files || files.length === 0) return;
+      
+      // 显示上传对话框
+      showChunkUploader.value = true;
+      
+      // 设置媒体类型
+      currentMediaType.value = mediaType;
+      
+      // 设置上传中状态
+      uploading.value = true;
+      
+      // 准备文件供ChunkUploader使用
+      nextTick(() => {
+        if (chunkUploader.value) {
+          // 添加文件到上传组件
+          files.forEach(file => {
+            chunkUploader.value.addFile(file);
+          });
           
-          if (response.data.failed > 0) {
-            alert(response.message)
-          }
-        } else {
-          alert(response.message || '图片上传失败')
+          // 自动开始上传
+          chunkUploader.value.startUpload();
         }
-      } catch (err) {
-        alert('网络错误，图片上传失败')
-        console.error('图片上传失败:', err)
-      } finally {
-        uploading.value = false
-        event.target.value = '' // 清空input
-      }
+      });
+    }
+    
+    // 处理图片上传
+    const handleImageUpload = (event) => {
+      const files = Array.from(event.target.files);
+      handleChunkUpload(files, 'images');
+      event.target.value = ''; // 清空input
     }
 
-    const handleVideoUpload = async (event) => {
-      const files = Array.from(event.target.files)
-      if (files.length === 0) return
-
-      try {
-        uploading.value = true
-
-        const response = await uploadFiles(files, 'video')
-        
-        if (response.success) {
-          response.data.successful.forEach((uploadedFile, index) => {
-            const originalFile = files[index]
-            formData.value.media.videos.push({
-              fileName: uploadedFile.serverFileName, // 使用服务器端文件名
-              desc: originalFile ? originalFile.name : '',
-              size: uploadedFile.size,
-              uploadTime: uploadedFile.uploadTime
-            })
-          })
-          
-          if (response.data.failed > 0) {
-            alert(response.message)
-          }
-        } else {
-          alert(response.message || '视频上传失败')
-        }
-      } catch (err) {
-        alert('网络错误，视频上传失败')
-        console.error('视频上传失败:', err)
-      } finally {
-        uploading.value = false
-        event.target.value = ''
-      }
+    // 处理视频上传
+    const handleVideoUpload = (event) => {
+      const files = Array.from(event.target.files);
+      handleChunkUpload(files, 'videos');
+      event.target.value = '';
     }
 
-    const handleAudioUpload = async (event) => {
-      const files = Array.from(event.target.files)
-      if (files.length === 0) return
-
-      try {
-        uploading.value = true
-
-        const response = await uploadFiles(files, 'audio')
-        
-        if (response.success) {
-          response.data.successful.forEach((uploadedFile, index) => {
-            const originalFile = files[index]
-            formData.value.media.audios.push({
-              fileName: uploadedFile.serverFileName, // 使用服务器端文件名
-              desc: originalFile ? originalFile.name : '',
-              size: uploadedFile.size,
-              uploadTime: uploadedFile.uploadTime
-            })
-          })
-          
-          if (response.data.failed > 0) {
-            alert(response.message)
-          }
-        } else {
-          alert(response.message || '音频上传失败')
+    // 处理音频上传
+    const handleAudioUpload = (event) => {
+      const files = Array.from(event.target.files);
+      handleChunkUpload(files, 'audios');
+      event.target.value = '';
+    }
+    
+    // 处理分片上传完成
+    const handleUploadComplete = (fileInfo) => {
+      // 根据当前媒体类型，添加到对应的媒体列表中
+      if (currentMediaType.value) {
+        // 检查是否是录音文件，如果是则添加特殊描述
+        let desc = fileInfo.fileName || '';
+        if (currentMediaType.value === 'audios' && uploadFiles.value.recordingDuration) {
+          desc = `录音 (${formatTime(uploadFiles.value.recordingDuration)})`;
         }
-      } catch (err) {
-        alert('网络错误，音频上传失败')
-        console.error('音频上传失败:', err)
-      } finally {
-        uploading.value = false
-        event.target.value = ''
+        
+        formData.value.media[currentMediaType.value].push({
+          fileName: fileInfo.serverFileName, // 使用服务器端文件名
+          desc: desc,
+          size: fileInfo.size,
+          uploadTime: new Date().toISOString()
+        });
+      }
+    }
+    
+    // 所有文件上传完成
+    const handleAllUploadsCompleted = () => {
+      uploading.value = false;
+      // 清除录音持续时间
+      if (uploadFiles.value.recordingDuration) {
+        uploadFiles.value.recordingDuration = null;
+      }
+      recordingTime.value = 0;
+    }
+    
+    // 关闭分片上传对话框
+    const closeChunkUploader = () => {
+      if (!uploading.value) {
+        showChunkUploader.value = false;
       }
     }
 
@@ -527,8 +541,6 @@ export default {
 
     const uploadRecordedAudio = async (audioBlob, duration) => {
       try {
-        uploading.value = true
-
         // 创建文件名
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
         const extension = audioRecorder.value.getFileExtension()
@@ -539,29 +551,27 @@ export default {
           type: audioBlob.type 
         })
 
-        const response = await uploadFiles([audioFile], 'audio')
+        // 设置当前媒体类型为音频
+        currentMediaType.value = 'audios'
         
-        if (response.success) {
-          response.data.successful.forEach(uploadedFile => {
-            formData.value.media.audios.push({
-              fileName: uploadedFile.serverFileName,
-              desc: `录音 (${formatTime(duration)})`,
-              size: uploadedFile.size,
-              uploadTime: uploadedFile.uploadTime
-            })
-          })
-          
-          if (response.data.failed > 0) {
-            alert(response.message)
+        // 记录录音持续时间，用于后续描述
+        uploadFiles.value = [audioFile]
+        uploadFiles.value.recordingDuration = duration
+        
+        // 显示上传对话框并设置上传中状态
+        showChunkUploader.value = true
+        uploading.value = true
+        
+        // 添加文件到上传组件并开始上传
+        nextTick(() => {
+          if (chunkUploader.value) {
+            chunkUploader.value.addFile(audioFile);
+            chunkUploader.value.startUpload();
           }
-        } else {
-          alert(response.message || '录音上传失败')
-        }
+        });
       } catch (err) {
         alert('网络错误，录音上传失败')
         console.error('录音上传失败:', err)
-      } finally {
-        uploading.value = false
         recordingTime.value = 0
       }
     }
@@ -666,12 +676,18 @@ export default {
       audioInput,
       isRecording,
       recordingTime,
+      showChunkUploader,
+      uploadFiles,
+      currentMediaType,
       triggerImageUpload,
       triggerVideoUpload,
       triggerAudioUpload,
       handleImageUpload,
       handleVideoUpload,
       handleAudioUpload,
+      handleUploadComplete,
+      handleAllUploadsCompleted,
+      closeChunkUploader,
       toggleRecording,
       formatTime,
       removeMedia,
@@ -1097,6 +1113,66 @@ export default {
 @keyframes blink {
   0%, 50% { opacity: 1; }
   51%, 100% { opacity: 0.3; }
+}
+
+/* 分片上传弹窗 */
+.chunk-uploader-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.chunk-uploader-container {
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.chunk-uploader-container h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  text-align: center;
+}
+
+.chunk-uploader-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.close-uploader-btn {
+  padding: 10px 20px;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s ease;
+}
+
+.close-uploader-btn:hover:not(:disabled) {
+  background: #2980b9;
+}
+
+.close-uploader-btn:disabled {
+  background: #95a5a6;
+  cursor: not-allowed;
 }
 
 /* 响应式设计 */
