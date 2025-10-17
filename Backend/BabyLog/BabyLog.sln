@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36414.22 d17.14
+VisualStudioVersion = 17.14.36414.22
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BabyLog", "BabyLog\BabyLog.csproj", "{6F3D3DAA-9D3D-474F-AA55-1413A74F5C71}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "APITest", "APITest\APITest.csproj", "{CC8261F8-6B5B-4CE9-9650-36C91B38E100}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{6F3D3DAA-9D3D-474F-AA55-1413A74F5C71}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6F3D3DAA-9D3D-474F-AA55-1413A74F5C71}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6F3D3DAA-9D3D-474F-AA55-1413A74F5C71}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CC8261F8-6B5B-4CE9-9650-36C91B38E100}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CC8261F8-6B5B-4CE9-9650-36C91B38E100}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CC8261F8-6B5B-4CE9-9650-36C91B38E100}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CC8261F8-6B5B-4CE9-9650-36C91B38E100}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

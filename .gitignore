@@ -30,3 +30,5 @@ pnpm-debug.log*
 /Backend/BabyLog/BabyLog/.vs/BabyLog
 /Backend/BabyLog/BabyLog/Properties/PublishProfiles
 /Release/Events
+/Backend/BabyLog/APITest/bin
+/Backend/BabyLog/APITest/obj

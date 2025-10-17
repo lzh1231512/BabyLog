@@ -399,7 +399,15 @@ export default {
     // 处理文件上传 - 使用分片上传
     // 公共上传处理函数
     const handleChunkUpload = (files, mediaType) => {
-      if (!files || files.length === 0) return;
+      if (!files || files.length === 0) {
+        console.log('没有选择文件');
+        return;
+      }
+      
+      console.log(`处理文件上传: 类型=${mediaType}, 文件数=${files.length}`);
+      files.forEach((file, index) => {
+        console.log(`文件[${index}]: 名称=${file.name}, 大小=${file.size}字节, 类型=${file.type}`);
+      });
       
       // 显示上传对话框
       showChunkUploader.value = true;
@@ -413,10 +421,13 @@ export default {
       // 准备文件供ChunkUploader使用
       nextTick(() => {
         if (chunkUploader.value) {
+          console.log('将文件添加到上传组件');
           // 添加文件到上传组件 (将自动开始上传)
           files.forEach(file => {
             chunkUploader.value.addFile(file);
           });
+        } else {
+          console.error('上传组件引用不存在!');
         }
       });
     }
@@ -444,33 +455,52 @@ export default {
     
     // 处理分片上传完成
     const handleUploadComplete = (fileInfo) => {
+      console.log('收到单个文件上传完成事件:', fileInfo);
+      
       // 根据当前媒体类型，添加到对应的媒体列表中
       if (currentMediaType.value) {
+        console.log(`将文件添加到媒体类型: ${currentMediaType.value}`);
+        
         // 检查是否是录音文件，如果是则添加特殊描述
         let desc = fileInfo.fileName || '';
         if (currentMediaType.value === 'audios' && uploadFiles.value.recordingDuration) {
           desc = `录音 (${formatTime(uploadFiles.value.recordingDuration)})`;
+          console.log(`设置录音描述: ${desc}`);
         }
         
-        formData.value.media[currentMediaType.value].push({
+        const mediaItem = {
           fileName: fileInfo.serverFileName, // 使用服务器端文件名
           desc: desc,
           size: fileInfo.size,
           uploadTime: new Date().toISOString()
-        });
+        };
+        
+        console.log('添加媒体项:', mediaItem);
+        formData.value.media[currentMediaType.value].push(mediaItem);
+        console.log(`当前${currentMediaType.value}数量: ${formData.value.media[currentMediaType.value].length}`);
+      } else {
+        console.warn('文件上传完成但媒体类型未设置!');
       }
     }
     
     // 所有文件上传完成
     const handleAllUploadsCompleted = () => {
+      console.log('所有文件上传完成');
       uploading.value = false;
+      
       // 清除录音持续时间
       if (uploadFiles.value.recordingDuration) {
         uploadFiles.value.recordingDuration = null;
+        console.log('清除录音持续时间');
       }
+      
       recordingTime.value = 0;
-      // 隐藏上传区域
-      showChunkUploader.value = false;
+      
+      // 延迟隐藏上传区域，给用户一点时间看到完成状态
+      setTimeout(() => {
+        console.log('隐藏上传区域');
+        showChunkUploader.value = false;
+      }, 1000);
     }
 
     // 录音相关方法
