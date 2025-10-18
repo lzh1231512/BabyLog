@@ -265,11 +265,34 @@ export default {
       
       if (player) {
         addLog('清理旧的播放器实例', 'info')
-        player.dispose()
+        try {
+          player.dispose()
+        } catch (e) {
+          addLog(`清理播放器实例出错: ${e.message}，继续初始化`, 'warning')
+        }
         player = null
       }
 
+      // 确保视频容器已重新渲染
+      await nextTick()
+      
       try {
+        // 检查DOM元素状态
+        if (!videoPlayer.value || !videoContainer.value) {
+          addLog('视频元素未找到，尝试强制刷新DOM...', 'warning')
+          // 触发视频元素的重新创建
+          const tempVideo = currentVideo.value
+          currentVideo.value = null
+          await nextTick()
+          currentVideo.value = tempVideo
+          await nextTick()
+          
+          // 再次检查DOM
+          if (!videoPlayer.value) {
+            throw new Error('视频元素未找到，即使在强制刷新DOM后')
+          }
+        }
+        
         // 等待容器元素可用
         addLog('等待容器元素可用...', 'info')
         await waitForElement(videoPlayer, 3000)
@@ -581,7 +604,7 @@ export default {
       addLog(`新视频文件: ${currentVideo.value.fileName}`, 'info')
       
       // 更新播放器源
-      if (player) {
+      if (player && videoPlayer.value) {
         try {
           addLog('获取新视频URL...', 'info')
           const videoUrlResponse = await getVideoURL(event.value.id, currentVideo.value.fileName)
@@ -651,16 +674,38 @@ export default {
           const videoUrl = videoData.hlsUrl
           addLog(`更新播放器源: ${videoUrl}`, 'info')
           
-          // Video.js切换视频源
-          player.src({
-            src: videoUrl,
-            type: 'application/x-mpegURL' // HLS格式
-          })
-          player.play()
+          try {
+            // Video.js切换视频源
+            player.src({
+              src: videoUrl,
+              type: 'application/x-mpegURL' // HLS格式
+            })
+            
+            // 确保在播放前播放器是可用的
+            player.ready(() => {
+              addLog('播放器准备就绪，开始播放', 'success')
+              player.play().catch(playErr => {
+                addLog(`自动播放失败: ${playErr.message}`, 'warning')
+              })
+            })
+          } catch (playerErr) {
+            addLog(`播放器更新源失败: ${playerErr.message}，将重新初始化播放器`, 'warning')
+            // 如果更新源失败，触发重新初始化
+            await nextTick()
+            initializePlayer()
+          }
         } catch (err) {
           addLog(`切换视频URL错误: ${err.message}`, 'error')
           error.value = '切换视频失败'
+          // 尝试重新初始化播放器
+          await nextTick()
+          initializePlayer()
         }
+      } else {
+        // 播放器不可用，强制重新初始化
+        addLog('播放器不可用，重新初始化...', 'warning')
+        await nextTick()
+        initializePlayer()
       }
       
       // 更新URL但不重新加载页面
@@ -691,6 +736,8 @@ export default {
     watch([currentVideo, () => videoPlayer.value], async ([newVideo, newVideoElement], [oldVideo]) => {
       if (newVideo && newVideoElement && newVideo !== oldVideo) {
         addLog('检测到currentVideo变化，重新初始化播放器', 'info')
+        // 给DOM充分时间更新
+        await new Promise(resolve => setTimeout(resolve, 100))
         await nextTick()
         await initializePlayer()
       }
