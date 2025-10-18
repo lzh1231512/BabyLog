@@ -4,6 +4,7 @@ using BabyLog.Services;
 using Hangfire;
 using Hangfire.MemoryStorage;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.AspNetCore.StaticFiles;
 using Serilog;
 using System.IO.Compression;
 
@@ -182,18 +183,27 @@ namespace BabyLog
 
                 // Configure default files and static files
                 app.UseDefaultFiles();
+                
+                var provider = new FileExtensionContentTypeProvider();
+                provider.Mappings[".m3u8"] = "application/vnd.apple.mpegurl";
+                provider.Mappings[".ts"] = "video/mp2t";
+
                 app.UseStaticFiles(new StaticFileOptions
                 {
-                    // Configure static files to not buffer the request
+                    ContentTypeProvider = provider,
                     OnPrepareResponse = ctx =>
                     {
-                        // Disable caching for video files to support range requests better
                         var path = ctx.File.PhysicalPath.ToLower();
                         if (path.EndsWith(".mp4") || path.EndsWith(".mov") || path.EndsWith(".m3u8") || path.EndsWith(".ts"))
                         {
+                            // 确保没有缓存这些文件
+                            ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store");
+                            ctx.Context.Response.Headers.Append("Pragma", "no-cache");
+                            ctx.Context.Response.Headers.Append("Expires", "-1");
                             ctx.Context.Response.Headers.Append("Accept-Ranges", "bytes");
                         }
-                    }
+                    },
+                    ServeUnknownFileTypes = true // 添加此行以确保服务未知的文件类型
                 });
 
                 app.UseAuthorization();
