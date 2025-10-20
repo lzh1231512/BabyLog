@@ -29,5 +29,8 @@ export default {
   },
   get BasePath() {
     return configData ? configData.BasePath : '';
+  },
+  get ShowDebugLog() {
+    return configData ? configData.ShowDebugLog : false;
   }
 };
