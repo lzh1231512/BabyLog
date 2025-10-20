@@ -42,14 +42,14 @@ export default {
       type: Boolean,
       default: true
     },
-    value: {
+    modelValue: {
       type: Boolean,
       default: false
     }
   },
-  emits: ['update:value', 'closed'],
+  emits: ['update:modelValue', 'closed'],
   setup(props, { emit }) {
-    const visible = ref(props.value);
+    const visible = ref(props.modelValue);
     let timer = null;
 
     const typeClass = computed(() => {
@@ -79,7 +79,7 @@ export default {
     const close = () => {
       visible.value = false;
       clearTimeout(timer);
-      emit('update:value', false);
+      emit('update:modelValue', false);
       emit('closed');
     };
 
@@ -93,8 +93,8 @@ export default {
       }
     };
 
-    // Watch for changes in the value prop
-    watch(() => props.value, (newValue) => {
+    // Watch for changes in the modelValue prop
+    watch(() => props.modelValue, (newValue) => {
       visible.value = newValue;
       if (newValue && props.duration > 0) {
         startTimer();

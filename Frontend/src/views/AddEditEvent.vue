@@ -2,8 +2,7 @@
   <div class="add-edit-event">
     <!-- Snackbar 提示组件 -->
     <Snackbar 
-      :value="snackbar.show"
-      @update:value="(val) => snackbar.show = val"
+      v-model="snackbar.show"
       :message="snackbar.message" 
       :subtext="snackbar.subtext" 
       :type="snackbar.type"
@@ -266,6 +265,9 @@
           </button>
           <button type="submit" class="save-btn" :disabled="!isFormValid || saving">
             {{ saving ? '保存中...' : (isEdit ? '保存修改' : '创建事件') }}
+          </button>
+          <button type="button" class="debug-btn" @click="testSnackbar" title="测试提示条">
+            测试提示
           </button>
         </div>
       </form>
@@ -739,13 +741,21 @@ export default {
     
     // 显示Snackbar消息的辅助函数
     const showSnackbar = (message, options = {}) => {
-      snackbar.value = {
-        show: true,
-        message,
-        subtext: options.subtext || '',
-        type: options.type || 'info',
-        duration: options.duration || 4000
-      };
+      // 先重置show为false，强制触发变更
+      snackbar.value.show = false;
+      
+      // 使用nextTick确保DOM更新后再显示
+      nextTick(() => {
+        snackbar.value = {
+          show: true,
+          message,
+          subtext: options.subtext || '',
+          type: options.type || 'info',
+          duration: options.duration || 4000
+        };
+        
+        console.log('显示Snackbar:', snackbar.value);
+      });
     }
 
     // 移除媒体文件
@@ -816,9 +826,30 @@ export default {
         router.push('/')
       }
     }
+    
+    // 用于测试Snackbar的函数
+    const testSnackbar = () => {
+      const types = ['success', 'info', 'warning', 'error'];
+      const randomType = types[Math.floor(Math.random() * types.length)];
+      
+      showSnackbar(`这是一条${randomType}提示消息`, {
+        type: randomType,
+        subtext: '用于测试Snackbar组件',
+        duration: 3000
+      });
+    }
 
     onMounted(async () => {
       await loadEditData()
+      
+      // 测试Snackbar组件是否正常工作
+      setTimeout(() => {
+        showSnackbar('欢迎使用BabyLog', {
+          type: 'success',
+          subtext: '记录美好时刻',
+          duration: 3000
+        });
+      }, 1000);
     })
 
     onUnmounted(() => {
@@ -864,7 +895,8 @@ export default {
       route,
       retryUpload,
       chunkUploader,
-      showSnackbar
+      showSnackbar,
+      testSnackbar
     }
   }
 }
@@ -1112,7 +1144,7 @@ export default {
   padding-top: 20px;
 }
 
-.cancel-btn, .save-btn {
+.cancel-btn, .save-btn, .debug-btn {
   padding: 12px 30px;
   border: none;
   border-radius: 25px;
@@ -1136,6 +1168,22 @@ export default {
   background: #bdc3c7;
   cursor: not-allowed;
   transform: none;
+}
+
+.debug-btn {
+  background: #7f8c8d;
+  color: white;
+  font-size: 12px;
+  padding: 8px 12px;
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  min-width: auto;
+  opacity: 0.5;
+}
+
+.debug-btn:hover {
+  opacity: 1;
 }
 
 /* 加载和错误状态 */
