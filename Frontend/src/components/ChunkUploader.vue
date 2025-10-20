@@ -197,7 +197,8 @@ export default {
           totalChunks: Math.ceil(file.size / this.chunkSize),
           uploadedChunks: 0,
           chunkQueue: [],
-          md5: null
+          md5: null,
+          captureTime: null
         };
         
         // 添加到任务列表
@@ -588,8 +589,15 @@ export default {
               fileName: response.data.originalName,
               serverFileName: response.data.serverFileName,
               size: response.data.size,
-              md5: response.data.mD5
+              md5: response.data.mD5,
+              captureTime: response.data.captureTime || null
             };
+            
+            // 如果捕获时间存在，记录在任务对象上
+            if (response.data.captureTime) {
+              task.captureTime = response.data.captureTime;
+              this.logInfo(`文件 ${task.name} 含有捕获时间: ${task.captureTime}`);
+            }
             
             this.logInfo(`发出上传完成事件: ${JSON.stringify(fileInfo)}`);
             this.$emit('upload-complete', fileInfo);
@@ -628,7 +636,20 @@ export default {
       if (isAllCompleted && this.uploadTasks.length > 0) {
         this.logInfo('所有任务都已完成，发出全部完成事件');
         this.isUploading = false;
-        this.$emit('all-completed');
+        
+        // 查找第一个有捕获时间的任务
+        let captureTime = null;
+        const taskWithCaptureTime = this.uploadTasks.find(task => 
+          task.status === 'completed' && task.captureTime
+        );
+        
+        if (taskWithCaptureTime) {
+          captureTime = taskWithCaptureTime.captureTime;
+          this.logInfo(`找到带有捕获时间的文件: ${taskWithCaptureTime.name}, 时间: ${captureTime}`);
+        }
+        
+        // 发出全部完成事件，同时传递首个捕获时间（如果有）
+        this.$emit('all-completed', { captureTime });
         
         // 汇总结果
         const completedTasks = this.uploadTasks.filter(task => task.status === 'completed').length;

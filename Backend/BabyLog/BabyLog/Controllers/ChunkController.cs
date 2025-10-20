@@ -3,7 +3,12 @@ using Microsoft.AspNetCore.Mvc;
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using FFMpegCore;
 using IOFile = System.IO.File;
+
 namespace BabyLog.Controllers
 {
     [ApiController]
@@ -571,7 +576,28 @@ namespace BabyLog.Controllers
                     }
                 });
 
-                // 返回成功信息和MD5校验结果
+                // 获取媒体文件的拍摄时间（如果是图片或视频）
+                DateTime? captureTime = null;
+                string fileExtension = Path.GetExtension(uploadTask.OriginalFileName).ToLowerInvariant();
+                bool isImageOrVideo = fileExtension == ".jpg" || fileExtension == ".jpeg" || 
+                                     fileExtension == ".png" || fileExtension == ".gif" || 
+                                     fileExtension == ".webp" || fileExtension == ".mp4" || 
+                                     fileExtension == ".mov";
+
+                if (isImageOrVideo)
+                {
+                    captureTime = GetMediaCaptureTime(fullPath, uploadTask.OriginalFileName);
+                    if (captureTime.HasValue)
+                    {
+                        _logger.LogInformation($"提取到文件拍摄时间: {captureTime.Value:o}, 文件: {serverFileName}");
+                    }
+                    else
+                    {
+                        _logger.LogInformation($"未能提取到拍摄时间, 文件: {serverFileName}");
+                    }
+                }
+
+                // 返回成功信息、MD5校验结果和拍摄时间
                 return Ok(new ApiResponse<object>
                 {
                     Success = true,
@@ -584,7 +610,8 @@ namespace BabyLog.Controllers
                         UploadTime = DateTime.Now.ToString("o"),
                         MD5 = actualMD5,
                         MD5Verified = md5Verified,
-                        ExpectedMD5 = uploadTask.FileMD5
+                        ExpectedMD5 = uploadTask.FileMD5,
+                        CaptureTime = captureTime?.ToString("yyyy/MM/dd")
                     },
                     Message = md5Verified ?
                         "文件上传完成并通过MD5校验" :
@@ -659,6 +686,208 @@ namespace BabyLog.Controllers
                     Message = $"获取上传状态失败: {ex.Message}"
                 });
             }
+        }
+
+        /// <summary>
+        /// 从图片中提取EXIF数据中的拍摄时间
+        /// </summary>
+        private DateTime? ExtractImageCaptureTime(string filePath)
+        {
+            try
+            {
+                using var image = Image.Load(filePath);
+                if (image.Metadata.ExifProfile != null)
+                {
+                    // 尝试获取DateTimeOriginal属性（拍摄时间）
+                    if (image.Metadata.ExifProfile.TryGetValue(ExifTag.DateTimeOriginal, out var dateTimeOriginal) && 
+                        dateTimeOriginal.Value != null)
+                    {
+                        string dateTimeStr = dateTimeOriginal.Value.ToString();
+                        if (DateTime.TryParseExact(dateTimeStr, "yyyy:MM:dd HH:mm:ss", 
+                            System.Globalization.CultureInfo.InvariantCulture, 
+                            System.Globalization.DateTimeStyles.None, out var dateTime2))
+                        {
+                            return dateTime2;
+                        }
+                    }
+                    
+                    // 如果DateTimeOriginal不存在，尝试获取DateTime属性
+                    if (image.Metadata.ExifProfile.TryGetValue(ExifTag.DateTime, out var dateTime) && 
+                        dateTime.Value != null)
+                    {
+                        string dateTimeStr = dateTime.Value.ToString();
+                        if (DateTime.TryParseExact(dateTimeStr, "yyyy:MM:dd HH:mm:ss", 
+                            System.Globalization.CultureInfo.InvariantCulture, 
+                            System.Globalization.DateTimeStyles.None, out var dt))
+                        {
+                            return dt;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"从图片提取EXIF拍摄时间失败: {filePath}");
+            }
+            
+            return null;
+        }
+
+        /// <summary>
+        /// 从视频中提取创建时间
+        /// </summary>
+        private DateTime? ExtractVideoCaptureTime(string filePath)
+        {
+            try
+            {
+                var mediaInfo = FFProbe.Analyse(filePath);
+                
+                // 尝试获取创建时间
+                if (mediaInfo.Format?.Tags != null)
+                {
+                    string creationTime = null;
+                    if (mediaInfo.Format.Tags.TryGetValue("creation_time", out creationTime) && !string.IsNullOrEmpty(creationTime))
+                    {
+                        if (DateTime.TryParse(creationTime, out var dateTime))
+                        {
+                            return dateTime;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"从视频提取拍摄时间失败: {filePath}");
+            }
+            
+            return null;
+        }
+        
+        /// <summary>
+        /// 尝试从文件名中提取日期时间
+        /// </summary>
+        private DateTime? ExtractDateTimeFromFileName(string fileName)
+        {
+            try
+            {
+                // 匹配常见的日期时间格式：YYYYMMDD_HHMMSS、YYYY-MM-DD HH.MM.SS等
+                var patterns = new[]
+                {
+                    @"(\d{4})[\-_]?(\d{2})[\-_]?(\d{2})[\-_\s]?(\d{2})[\-_:]?(\d{2})[\-_:]?(\d{2})", // 20210101_123045
+                    @"(\d{4})[\-_]?(\d{2})[\-_]?(\d{2})",  // 20210101
+                    @"IMG_(\d{8})_(\d{6})" // IMG_20210101_123045
+                };
+                
+                foreach (var pattern in patterns)
+                {
+                    var match = Regex.Match(fileName, pattern);
+                    if (match.Success)
+                    {
+                        if (match.Groups.Count >= 7) // 完整日期时间
+                        {
+                            int year = int.Parse(match.Groups[1].Value);
+                            int month = int.Parse(match.Groups[2].Value);
+                            int day = int.Parse(match.Groups[3].Value);
+                            int hour = int.Parse(match.Groups[4].Value);
+                            int minute = int.Parse(match.Groups[5].Value);
+                            int second = int.Parse(match.Groups[6].Value);
+                            
+                            if (IsValidDateTime(year, month, day, hour, minute, second))
+                            {
+                                return new DateTime(year, month, day, hour, minute, second);
+                            }
+                        }
+                        else if (match.Groups.Count >= 4) // 只有日期
+                        {
+                            int year = int.Parse(match.Groups[1].Value);
+                            int month = int.Parse(match.Groups[2].Value);
+                            int day = int.Parse(match.Groups[3].Value);
+                            
+                            if (IsValidDateTime(year, month, day, 0, 0, 0))
+                            {
+                                return new DateTime(year, month, day);
+                            }
+                        }
+                        else if (match.Groups.Count == 3 && match.Groups[1].Value.Length == 8 && match.Groups[2].Value.Length == 6)
+                        {
+                            // 处理类似IMG_20210101_123045格式
+                            string dateStr = match.Groups[1].Value;
+                            string timeStr = match.Groups[2].Value;
+                            
+                            int year = int.Parse(dateStr.Substring(0, 4));
+                            int month = int.Parse(dateStr.Substring(4, 2));
+                            int day = int.Parse(dateStr.Substring(6, 2));
+                            int hour = int.Parse(timeStr.Substring(0, 2));
+                            int minute = int.Parse(timeStr.Substring(2, 2));
+                            int second = int.Parse(timeStr.Substring(4, 2));
+                            
+                            if (IsValidDateTime(year, month, day, hour, minute, second))
+                            {
+                                return new DateTime(year, month, day, hour, minute, second);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"从文件名提取日期时间失败: {fileName}");
+            }
+            
+            return null;
+        }
+        
+        /// <summary>
+        /// 验证日期时间是否有效
+        /// </summary>
+        private bool IsValidDateTime(int year, int month, int day, int hour, int minute, int second)
+        {
+            if (year < 1970 || year > DateTime.Now.Year + 1) return false;
+            if (month < 1 || month > 12) return false;
+            if (day < 1 || day > 31) return false;
+            if (hour < 0 || hour > 23) return false;
+            if (minute < 0 || minute > 59) return false;
+            if (second < 0 || second > 59) return false;
+            
+            try
+            {
+                new DateTime(year, month, day, hour, minute, second);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        
+        /// <summary>
+        /// 获取媒体文件的拍摄时间
+        /// </summary>
+        private DateTime? GetMediaCaptureTime(string filePath, string fileName)
+        {
+            DateTime? captureTime = null;
+            string fileExtension = Path.GetExtension(fileName).ToLowerInvariant();
+            
+            // 判断是图片还是视频文件
+            if (fileExtension == ".jpg" || fileExtension == ".jpeg" || fileExtension == ".png" || 
+                fileExtension == ".gif" || fileExtension == ".webp")
+            {
+                // 尝试从图片EXIF中获取拍摄时间
+                captureTime = ExtractImageCaptureTime(filePath);
+            }
+            else if (fileExtension == ".mp4" || fileExtension == ".mov")
+            {
+                // 尝试从视频文件中获取拍摄时间
+                captureTime = ExtractVideoCaptureTime(filePath);
+            }
+            
+            // 如果无法从媒体元数据中获取拍摄时间，尝试从文件名中提取
+            if (captureTime == null)
+            {
+                captureTime = ExtractDateTimeFromFileName(Path.GetFileNameWithoutExtension(fileName));
+            }
+            
+            return captureTime;
         }
     }
 }

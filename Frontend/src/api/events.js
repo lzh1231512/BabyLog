@@ -350,6 +350,7 @@ export const uploadChunk = async (taskId, chunkIndex, file) => {
  *   public string MD5 { get; set; }
  *   public bool MD5Verified { get; set; }
  *   public string ExpectedMD5 { get; set; }
+ *   public string CaptureTime { get; set; }
  * }
  */
 export const completeChunk = async (taskId) => {

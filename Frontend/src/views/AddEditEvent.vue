@@ -501,11 +501,17 @@ export default {
           console.log(`设置录音描述: ${desc}`);
         }
         
+        // 如果文件有捕获时间，记录在控制台
+        if (fileInfo.captureTime) {
+          console.log(`文件 ${fileInfo.fileName} 有捕获时间: ${fileInfo.captureTime}`);
+        }
+        
         const mediaItem = {
           fileName: fileInfo.serverFileName, // 使用服务器端文件名
           desc: desc,
           size: fileInfo.size,
-          uploadTime: new Date().toISOString()
+          uploadTime: new Date().toISOString(),
+          captureTime: fileInfo.captureTime || null // 保存捕获时间信息
         };
         
         console.log('添加媒体项:', mediaItem);
@@ -517,9 +523,22 @@ export default {
     }
     
     // 所有文件上传完成
-    const handleAllUploadsCompleted = () => {
-      console.log('所有文件上传完成');
+    const handleAllUploadsCompleted = (data) => {
+      console.log('所有文件上传完成', data);
       uploading.value = false;
+      
+      // 检查并处理捕获时间
+      if (data && data.captureTime) {
+        console.log(`获取到捕获时间: ${data.captureTime}`);
+        // 将捕获时间转换为日期格式 YYYY-MM-DD 并更新表单日期
+        try {
+          const captureDate = dayjs(data.captureTime).format('YYYY-MM-DD');
+          console.log(`将事件日期从 ${formData.value.date} 更新为 ${captureDate}`);
+          formData.value.date = captureDate;
+        } catch (error) {
+          console.error('无法解析捕获时间:', error);
+        }
+      }
       
       // 清除录音持续时间
       if (uploadFiles.value.recordingDuration) {

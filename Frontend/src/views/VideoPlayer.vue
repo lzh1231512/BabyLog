@@ -62,14 +62,15 @@
         <div 
           ref="videoContainer" 
           class="video-js-container"
-          v-if="currentVideo"
+          v-show="event"
         >
-          <video
-            :id="`video-player-${event.id}-${currentVideoIndex}`"
-            ref="videoPlayer"
-            :key="`video-${event.id}-${currentVideoIndex}`"
-            class="video-js vjs-big-play-centered"
-          ></video>
+          <div class="video-player-wrapper">
+            <video
+              id="video-player"
+              ref="videoPlayer"
+              class="video-js vjs-big-play-centered"
+            ></video>
+          </div>
         </div>
         
         <!-- 视频信息 -->
@@ -109,7 +110,7 @@
 </template>
 
 <script>
-import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import videojs from 'video.js'
@@ -245,8 +246,10 @@ export default {
         currentVideo.value = videoList.value[currentVideoIndex.value]
         addLog(`当前视频: ${currentVideo.value.fileName} (索引: ${currentVideoIndex.value})`, 'info')
         
-        // DOM 更新后，watch 会自动调用 initializePlayer
+        // 等待DOM更新并初始化播放器
         addLog('等待DOM更新和播放器初始化...', 'info')
+        await nextTick()
+        await initializePlayer()
         
       } catch (err) {
         addLog(`加载视频数据失败: ${err.message}`, 'error')
@@ -263,6 +266,7 @@ export default {
     const initializePlayer = async () => {
       addLog('开始初始化Video.js播放器...', 'info')
       
+      // 清理旧实例
       if (player) {
         addLog('清理旧的播放器实例', 'info')
         try {
@@ -273,26 +277,29 @@ export default {
         player = null
       }
 
-      // 确保视频容器已重新渲染
-      await nextTick()
+      // 确保视频容器和当前视频已正确设置
+      if (!currentVideo.value || !event.value) {
+        addLog('当前视频数据不存在，无法初始化播放器', 'error')
+        error.value = '视频数据加载失败'
+        return
+      }
+
+      // 确认DOM元素存在
+      if (!videoPlayer.value || !videoContainer.value) {
+        addLog('找不到播放器DOM元素，等待300ms后重试', 'warning')
+        await new Promise(resolve => setTimeout(resolve, 300))
+        
+        if (!videoPlayer.value || !videoContainer.value) {
+          addLog('最终检查失败，播放器DOM元素不存在', 'error')
+          error.value = '播放器加载失败: DOM元素丢失'
+          return
+        }
+      }
+
+      addLog(`视频元素ID: ${videoPlayer.value.id}`, 'info')
+      addLog(`视频容器存在: ${!!videoContainer.value}`, 'info')
       
       try {
-        // 检查DOM元素状态
-        if (!videoPlayer.value || !videoContainer.value) {
-          addLog('视频元素未找到，尝试强制刷新DOM...', 'warning')
-          // 触发视频元素的重新创建
-          const tempVideo = currentVideo.value
-          currentVideo.value = null
-          await nextTick()
-          currentVideo.value = tempVideo
-          await nextTick()
-          
-          // 再次检查DOM
-          if (!videoPlayer.value) {
-            throw new Error('视频元素未找到，即使在强制刷新DOM后')
-          }
-        }
-        
         // 等待容器元素可用
         addLog('等待容器元素可用...', 'info')
         await waitForElement(videoPlayer, 3000)
@@ -599,119 +606,45 @@ export default {
       }
       
       addLog(`切换到视频 ${index + 1}/${videoList.value.length}`, 'info')
+      loading.value = true
+      error.value = ''
+      
+      // 清理旧播放器
+      if (player) {
+        addLog('销毁现有播放器实例', 'info')
+        try {
+          player.dispose()
+        } catch (e) {
+          addLog(`销毁播放器实例出错: ${e.message}`, 'warning')
+        }
+        player = null
+      }
+      
+      // 更新当前视频信息
       currentVideoIndex.value = index
       currentVideo.value = videoList.value[index]
-      addLog(`新视频文件: ${currentVideo.value.fileName}`, 'info')
-      
-      // 更新播放器源
-      if (player && videoPlayer.value) {
-        try {
-          addLog('获取新视频URL...', 'info')
-          const videoUrlResponse = await getVideoURL(event.value.id, currentVideo.value.fileName)
-          
-          if (!videoUrlResponse.success) {
-            addLog(`获取视频URL失败: ${videoUrlResponse.message}`, 'error')
-            error.value = videoUrlResponse.message || '获取视频URL失败'
-            return
-          }
-
-          const videoData = videoUrlResponse.data
-          addLog(`视频状态: ${JSON.stringify(videoData)}`, 'info')
-
-          // 检查视频是否正在处理中
-          if (videoData.isProcessing) {
-            addLog('视频正在转码中，请稍后再试', 'warning')
-            error.value = '视频正在转码中，请稍后再试 <span class="retry-transcode-btn" id="retry-transcode">自动重试</span>'
-            
-            // 添加重试按钮的事件监听器
-            setTimeout(() => {
-              const retryBtn = document.getElementById('retry-transcode')
-              if (retryBtn) {
-                retryBtn.addEventListener('click', () => {
-                  addLog('自动重试转码检查...', 'info')
-                  // 设置定时器每3秒检查一次转码状态
-                  let checkCount = 0
-                  const maxChecks = 20 // 最多检查20次，约1分钟
-                  
-                  const checkInterval = setInterval(async () => {
-                    checkCount++
-                    addLog(`第${checkCount}次检查转码状态...`, 'info')
-                    
-                    try {
-                      const response = await getVideoURL(event.value.id, currentVideo.value.fileName)
-                      if (response.success && response.data) {
-                        if (!response.data.isProcessing && response.data.isTranscoded) {
-                          addLog('视频转码已完成', 'success')
-                          clearInterval(checkInterval)
-                          switchVideo(currentVideoIndex.value)
-                        } else if (checkCount >= maxChecks) {
-                          addLog('达到最大检查次数，停止检查', 'warning')
-                          error.value = '视频转码时间过长，请稍后刷新页面重试'
-                          clearInterval(checkInterval)
-                        } else {
-                          addLog('视频仍在转码中...', 'info')
-                        }
-                      } else {
-                        addLog('检查转码状态失败', 'error')
-                        clearInterval(checkInterval)
-                      }
-                    } catch (err) {
-                      addLog(`检查转码状态出错: ${err.message}`, 'error')
-                      clearInterval(checkInterval)
-                    }
-                  }, 3000) // 每3秒检查一次
-                })
-              }
-            }, 100)
-            return
-          }
-
-          // 检查视频是否已转码
-          if (!videoData.isTranscoded) {
-            addLog('视频未经过转码，可能无法正常播放', 'warning')
-          }
-
-          const videoUrl = videoData.hlsUrl
-          addLog(`更新播放器源: ${videoUrl}`, 'info')
-          
-          try {
-            // Video.js切换视频源
-            player.src({
-              src: videoUrl,
-              type: 'application/x-mpegURL' // HLS格式
-            })
-            
-            // 确保在播放前播放器是可用的
-            player.ready(() => {
-              addLog('播放器准备就绪，开始播放', 'success')
-              player.play().catch(playErr => {
-                addLog(`自动播放失败: ${playErr.message}`, 'warning')
-              })
-            })
-          } catch (playerErr) {
-            addLog(`播放器更新源失败: ${playerErr.message}，将重新初始化播放器`, 'warning')
-            // 如果更新源失败，触发重新初始化
-            await nextTick()
-            initializePlayer()
-          }
-        } catch (err) {
-          addLog(`切换视频URL错误: ${err.message}`, 'error')
-          error.value = '切换视频失败'
-          // 尝试重新初始化播放器
-          await nextTick()
-          initializePlayer()
-        }
-      } else {
-        // 播放器不可用，强制重新初始化
-        addLog('播放器不可用，重新初始化...', 'warning')
-        await nextTick()
-        initializePlayer()
-      }
+      addLog(`切换到视频: ${currentVideo.value.fileName}`, 'info')
       
       // 更新URL但不重新加载页面
       const newPath = `/video-player/${event.value.id}/${index}`
       if (route.path !== newPath) {
         router.replace(newPath)
+      }
+      
+      // 确保DOM完全更新
+      await nextTick()
+      await new Promise(resolve => setTimeout(resolve, 300))
+      
+      // 初始化新播放器
+      try {
+        // 直接初始化播放器，而不是重新加载全部数据
+        await nextTick()
+        await initializePlayer()
+      } catch (e) {
+        addLog(`初始化播放器失败: ${e.message}`, 'error')
+        error.value = '切换视频失败，请重试'
+      } finally {
+        loading.value = false
       }
     }
 
@@ -732,16 +665,7 @@ export default {
       router.back()
     }
 
-    // 监听 currentVideo 变化，确保 DOM 元素可用后再初始化播放器
-    watch([currentVideo, () => videoPlayer.value], async ([newVideo, newVideoElement], [oldVideo]) => {
-      if (newVideo && newVideoElement && newVideo !== oldVideo) {
-        addLog('检测到currentVideo变化，重新初始化播放器', 'info')
-        // 给DOM充分时间更新
-        await new Promise(resolve => setTimeout(resolve, 100))
-        await nextTick()
-        await initializePlayer()
-      }
-    }, { flush: 'post' })
+    // 移除监听器，我们现在完全通过switchVideo控制播放器的初始化
 
     // 组件挂载
     onMounted(async () => {
