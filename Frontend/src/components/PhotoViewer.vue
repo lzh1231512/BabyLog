@@ -1,6 +1,7 @@
 <template>
-  <div class="photo-modal" v-if="show" @click="close">
-    <div class="modal-content" @click.stop @touchstart="handleTouchStart" @touchmove="handleTouchMove" @touchend="handleTouchEnd">
+  <div class="photo-modal" v-if="show">
+    <div class="modal-backdrop" @click="close"></div>
+    <div class="modal-content" @touchstart="handleTouchStart" @touchmove="handleTouchMove" @touchend="handleTouchEnd">
       <button class="modal-close" @click="close">✕</button>
       
       <!-- PC端缩放控制按钮 -->
@@ -12,7 +13,7 @@
       </div>
       
       <div class="photo-viewer">
-        <button class="nav-btn prev" @click="prevPhoto" v-if="currentIndex > 0">‹</button>
+        <button class="nav-btn prev" @click.stop="prevPhoto" v-if="currentIndex > 0">‹</button>
         <div class="current-photo">
           <div 
             class="large-photo-container"
@@ -35,7 +36,7 @@
             <span class="hint-text" v-else>双击重置缩放</span>
           </div>
         </div>
-        <button class="nav-btn next" @click="nextPhoto" v-if="currentIndex < totalImages - 1">›</button>
+        <button class="nav-btn next" @click.stop="nextPhoto" v-if="currentIndex < totalImages - 1">›</button>
       </div>
     </div>
   </div>
@@ -352,17 +353,58 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.9);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
 }
 
+.modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+}
+
 .modal-content {
   position: relative;
-  max-width: 90vw;
+  z-index: 1001;
+  max-width: 95vw;
+  max-height: 95vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* 修改图片容器高度 */
+.large-photo-container {
+  width: 80vw;
+  max-width: 1200px;
+  height: 80vh;
   max-height: 90vh;
+  overflow: hidden;
+  border-radius: 15px;
+  position: relative;
+  margin-bottom: 15px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* 移动端响应式调整 */
+@media (max-width: 768px) {
+  .large-photo-container {
+    width: 100vw;
+    height: 85vh;
+    margin-bottom: 0;
+    border-radius: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .large-photo-container {
+    height: 75vh;
+  }
 }
 
 .modal-close {
@@ -538,7 +580,7 @@ export default {
 @media (max-width: 768px) {
   .large-photo-container {
     width: 100vw;
-    height: 100vh;
+    height: 85vh;
     margin-bottom: 0;
     border-radius: 0;
   }
