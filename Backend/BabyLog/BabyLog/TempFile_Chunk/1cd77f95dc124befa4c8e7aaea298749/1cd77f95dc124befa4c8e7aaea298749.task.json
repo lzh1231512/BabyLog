@@ -1,0 +1,18 @@
+{
+  "TaskId": "1cd77f95dc124befa4c8e7aaea298749",
+  "OriginalFileName": "test.jpg",
+  "FileType": "image/jpeg",
+  "TotalSize": 3856124,
+  "TotalChunks": 2,
+  "CompletedChunks": [
+    0,
+    1
+  ],
+  "Status": 2,
+  "CreatedAt": "2025-10-20T11:06:15.0496236+08:00",
+  "LastUpdatedAt": "2025-10-20T11:06:15.7150775+08:00",
+  "ResultFileName": "20251020110615563_ktn3mx.jpg",
+  "FileMD5": "d1cae3eaf082d0a8f68b283b07c8dfa8",
+  "ActualMD5": "d1cae3eaf082d0a8f68b283b07c8dfa8",
+  "MD5Verified": true
+}

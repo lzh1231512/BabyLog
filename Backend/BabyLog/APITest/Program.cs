@@ -24,7 +24,7 @@ namespace APITest
                 Console.WriteLine("============================");
 
                 // Parse command line arguments or use defaults
-                string filePath = GetArgumentValue(args, "-f", "--file", "D:\\largeFile\\新建文件夹\\30M.zip");
+                string filePath = GetArgumentValue(args, "-f", "--file", "D:\\largeFile\\test.jpg");
                 string apiUrl = GetArgumentValue(args, "-u", "--url", "http://lzhsb.cc:5115");
                 int chunkSize = ParseChunkSize(GetArgumentValue(args, "-s", "--size", "1mb"));
 
@@ -155,6 +155,7 @@ namespace APITest
                 Console.WriteLine($"Average speed: {speedMBps:F2} MB/s");
                 Console.WriteLine($"MD5 verification: {(completeResponse.Data.MD5Verified ? "Passed" : "Failed")}");
                 Console.WriteLine($"Server MD5: {completeResponse.Data.MD5}");
+                Console.WriteLine($"CaptureTime: {completeResponse.Data.CaptureTime}");
             }
             else
             {
@@ -355,5 +356,6 @@ namespace APITest
         public string MD5 { get; set; }
         public bool MD5Verified { get; set; }
         public string ExpectedMD5 { get; set; }
+        public string CaptureTime { get; set; }
     }
 }

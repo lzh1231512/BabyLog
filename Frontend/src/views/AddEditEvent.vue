@@ -1,5 +1,15 @@
 <template>
   <div class="add-edit-event">
+    <!-- Snackbar 提示组件 -->
+    <Snackbar 
+      :value="snackbar.show"
+      @update:value="(val) => snackbar.show = val"
+      :message="snackbar.message" 
+      :subtext="snackbar.subtext" 
+      :type="snackbar.type"
+      :duration="snackbar.duration"
+    />
+
     <!-- 头部 -->
     <header class="header">
       <button class="back-btn" @click="goBack">
@@ -298,11 +308,13 @@ import dayjs from 'dayjs'
 import { getEventById, createEvent, updateEvent, getMediaUrl } from '@/api/events'
 import AudioRecorder from '@/utils/AudioRecorder'
 import ChunkUploader from '@/components/ChunkUploader.vue'
+import Snackbar from '@/components/Snackbar.vue'
 
 export default {
   name: 'AddEditEvent',
   components: {
-    ChunkUploader
+    ChunkUploader,
+    Snackbar
   },
   setup() {
     const route = useRoute()
@@ -326,6 +338,15 @@ export default {
     const isRecording = ref(false)
     const recordingTime = ref(0)
     const audioRecorder = ref(null)
+    
+    // Snackbar提示相关状态
+    const snackbar = ref({
+      show: false,
+      message: '',
+      subtext: '',
+      type: 'info',
+      duration: 4000
+    })
     
     const isEdit = computed(() => !!route.params.id)
     
@@ -517,8 +538,27 @@ export default {
         console.log('添加媒体项:', mediaItem);
         formData.value.media[currentMediaType.value].push(mediaItem);
         console.log(`当前${currentMediaType.value}数量: ${formData.value.media[currentMediaType.value].length}`);
+        
+        // 显示上传成功提示
+        let mediaTypeText = '';
+        switch (currentMediaType.value) {
+          case 'images': mediaTypeText = '图片'; break;
+          case 'videos': mediaTypeText = '视频'; break;
+          case 'audios': mediaTypeText = '音频'; break;
+        }
+        
+        showSnackbar(`${mediaTypeText}上传成功`, {
+          subtext: fileInfo.fileName,
+          type: 'info',
+          duration: 2000
+        });
       } else {
         console.warn('文件上传完成但媒体类型未设置!');
+        showSnackbar('文件上传完成', {
+          type: 'warning',
+          subtext: '媒体类型未设置，请重试',
+          duration: 3000
+        });
       }
     }
     
@@ -533,10 +573,25 @@ export default {
         // 将捕获时间转换为日期格式 YYYY-MM-DD 并更新表单日期
         try {
           const captureDate = dayjs(data.captureTime).format('YYYY-MM-DD');
-          console.log(`将事件日期从 ${formData.value.date} 更新为 ${captureDate}`);
+          const oldDate = formData.value.date;
+          console.log(`将事件日期从 ${oldDate} 更新为 ${captureDate}`);
           formData.value.date = captureDate;
+          
+          // 使用辅助函数显示Snackbar提示
+          showSnackbar('已从媒体文件中检测到日期', {
+            subtext: `事件日期已自动更新为: ${captureDate}`,
+            type: 'success',
+            duration: 5000
+          });
         } catch (error) {
           console.error('无法解析捕获时间:', error);
+          
+          // 使用辅助函数显示错误提示
+          showSnackbar('日期格式解析失败', {
+            subtext: '无法从媒体文件中提取日期信息',
+            type: 'error',
+            duration: 4000
+          });
         }
       }
       
@@ -681,6 +736,17 @@ export default {
       const secs = seconds % 60
       return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
     }
+    
+    // 显示Snackbar消息的辅助函数
+    const showSnackbar = (message, options = {}) => {
+      snackbar.value = {
+        show: true,
+        message,
+        subtext: options.subtext || '',
+        type: options.type || 'info',
+        duration: options.duration || 4000
+      };
+    }
 
     // 移除媒体文件
     const removeMedia = (type, index) => {
@@ -779,6 +845,7 @@ export default {
       uploadFiles,
       currentMediaType,
       uploaderStatus,
+      snackbar,
       triggerImageUpload,
       triggerVideoUpload,
       triggerAudioUpload,
@@ -796,7 +863,8 @@ export default {
       getMediaUrl,
       route,
       retryUpload,
-      chunkUploader
+      chunkUploader,
+      showSnackbar
     }
   }
 }
