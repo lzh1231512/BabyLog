@@ -838,7 +838,7 @@ export default {
 .photo-placeholder {
   height: 150px;
   background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
-  background-size: contain;
+  background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   border-radius: 10px;
@@ -898,7 +898,7 @@ export default {
   width: 100%;
   height: 100%;
   background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
-  background-size: contain;
+  background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   display: flex;
@@ -1209,14 +1209,21 @@ export default {
 
 .modal-close {
   position: absolute;
-  top: -40px;
-  right: 0;
-  background: none;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.5);
   border: none;
   color: white;
   font-size: 24px;
   cursor: pointer;
   padding: 10px;
+  z-index: 1010;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .photo-viewer {
@@ -1243,7 +1250,7 @@ export default {
   width: 100%;
   height: 100%;
   background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
-  background-size: contain;
+  background-size: contain; /* Keep as contain for the modal view to show full image */
   background-position: center;
   background-repeat: no-repeat;
   border-radius: 15px;
@@ -1254,6 +1261,7 @@ export default {
   color: white;
   cursor: grab;
   transform-origin: center;
+  margin: 0;
 }
 
 .large-photo-placeholder:active {
@@ -1392,12 +1400,15 @@ export default {
   }
   
   .large-photo-container {
-    width: 90vw;
-    height: 300px;
+    width: 100vw;
+    height: 100vh;
+    margin-bottom: 0;
+    border-radius: 0;
   }
   
   .large-photo-placeholder {
     font-size: 60px;
+    border-radius: 0;
   }
   
   /* 移动端隐藏缩放控制按钮 */
@@ -1405,17 +1416,25 @@ export default {
     display: none;
   }
   
+  .modal-content {
+    max-width: 100vw;
+    max-height: 100vh;
+    width: 100%;
+    height: 100%;
+  }
+  
   .photo-viewer {
     flex-direction: column;
-    gap: 10px;
+    gap: 0;
     align-items: center;
     width: 100%;
+    height: 100%;
     position: relative;
-    padding: 0 50px;  /* 为翻页按钮留出空间 */
+    padding: 0;  /* 移除左右填充，使用全屏 */
   }
   
   .photo-viewer .nav-btn {
-    position: fixed;
+    position: absolute;
     top: 50%;
     transform: translateY(-50%);
     z-index: 1001;
@@ -1452,7 +1471,19 @@ export default {
   
   .swipe-hint {
     display: block;
-    margin-top: 15px;
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    right: 0;
+    text-align: center;
+  }
+  
+  .photo-counter {
+    position: absolute;
+    bottom: 40px;
+    left: 0;
+    right: 0;
+    text-align: center;
   }
   
   .hint-text {
@@ -1511,9 +1542,26 @@ export default {
   }
   
   .modal-close {
-    top: -35px;
+    top: 10px;
+    right: 10px;
     font-size: 20px;
     padding: 8px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1010;
+  }
+  
+  .current-photo {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
   
 
