@@ -3,7 +3,13 @@
     <div class="modal-backdrop" @click="close"></div>
     <div class="modal-content">
       <button class="modal-close" @click="close">✕</button>
-      
+      <button class="nav-btn prev" @click.stop="prevPhoto" v-if="currentIndex > 0">‹</button>
+      <button class="nav-btn next" @click.stop="nextPhoto" v-if="currentIndex < totalImages - 1">›</button>
+      <p class="photo-counter">{{ currentIndex + 1 }} / {{ totalImages }}</p>
+      <div class="swipe-hint">
+        <span class="hint-text" v-if="imageScale <= 1">← 滑动切换 →</span>
+        <span class="hint-text" v-else>双击重置缩放</span>
+      </div>
       <!-- PC端缩放控制按钮 -->
       <div class="zoom-controls desktop-only">
         <button class="zoom-btn" @click="zoomOut" :disabled="imageScale <= minScale">−</button>
@@ -13,7 +19,6 @@
       </div>
       
       <div class="photo-viewer" @touchstart="handleTouchStart" @touchmove="handleTouchMove" @touchend="handleTouchEnd">
-        <button class="nav-btn prev" @click.stop="prevPhoto" v-if="currentIndex > 0">‹</button>
         <div class="current-photo">
           <div 
             class="large-photo-container"
@@ -30,13 +35,9 @@
               <span v-if="!getCurrentImageFilename()" class="photo-icon">📷</span>
             </div>
           </div>
-          <p class="photo-counter">{{ currentIndex + 1 }} / {{ totalImages }}</p>
-          <div class="swipe-hint">
-            <span class="hint-text" v-if="imageScale <= 1">← 滑动切换 →</span>
-            <span class="hint-text" v-else>双击重置缩放</span>
-          </div>
+          
+          
         </div>
-        <button class="nav-btn next" @click.stop="nextPhoto" v-if="currentIndex < totalImages - 1">›</button>
       </div>
     </div>
   </div>
@@ -612,7 +613,7 @@ export default {
     padding: 0;  /* 移除左右填充，使用全屏 */
   }
   
-  .photo-viewer .nav-btn {
+  .modal-content .nav-btn {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
@@ -629,22 +630,22 @@ export default {
     align-items: center;
     justify-content: center;
   }
-  
-  .photo-viewer .nav-btn.prev {
+
+  .modal-content .nav-btn.prev {
     left: 10px;
   }
-  
-  .photo-viewer .nav-btn.next {
+
+  .modal-content .nav-btn.next {
     right: 10px;
   }
-  
-  .photo-viewer .nav-btn:hover,
-  .photo-viewer .nav-btn:active {
+
+  .modal-content .nav-btn:hover,
+  .modal-content .nav-btn:active {
     background: rgba(0, 0, 0, 0.8);
     border-color: rgba(255, 255, 255, 0.5);
   }
-  
-  .photo-viewer .nav-btn:active {
+
+  .modal-content .nav-btn:active {
     transform: translateY(-50%) scale(0.95);
   }
   
@@ -685,18 +686,18 @@ export default {
 
 /* 更小屏幕设备的优化 */
 @media (max-width: 480px) {
-  .photo-viewer .nav-btn {
+  .modal-content .nav-btn {
     font-size: 20px;
     padding: 10px 6px;
     min-width: 36px;
     min-height: 36px;
   }
   
-  .photo-viewer .nav-btn.prev {
+  .modal-content .nav-btn.prev {
     left: 5px;
   }
-  
-  .photo-viewer .nav-btn.next {
+
+  .modal-content .nav-btn.next {
     right: 5px;
   }
   
