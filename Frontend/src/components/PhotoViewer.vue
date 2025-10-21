@@ -702,7 +702,7 @@ export default {
   
   .large-photo-container {
     width: 95vw;
-    height: 250px;
+    height: 85vh;
   }
   
   .large-photo-placeholder {
