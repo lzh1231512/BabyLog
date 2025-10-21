@@ -70,16 +70,16 @@
         >
           <div class="period-header">
             <div class="period-age">{{ period.age }}</div>
-            <div class="period-date">{{ period.date }}</div>
           </div>
           <div class="events-grid">
             <div 
-              v-for="event in period.events" 
+              v-for="(event, eventIndex) in period.events" 
               :key="event.id"
               class="event-card"
               :data-event-id="event.id"
               @click="viewEvent(event)"
             >
+              <div v-if="shouldShowEventDate(period.events, eventIndex)" class="event-date">{{ event.date }}</div>
               <div class="event-photos">
                 <!-- 显示图片 -->
                 <LazyImage
@@ -264,8 +264,25 @@ export default {
         return []
       }
       
-      const sorted = [...timelinePeriods.value]
+      // 深拷贝时间线数据，避免修改原始数据
+      const sorted = JSON.parse(JSON.stringify(timelinePeriods.value))
       
+      // 先对每个周期内的事件进行排序
+      sorted.forEach(period => {
+        if (period.events && period.events.length > 0) {
+          // 根据排序方式对事件进行排序
+          period.events.sort((a, b) => {
+            const dateA = new Date(a.date || '1970-01-01')
+            const dateB = new Date(b.date || '1970-01-01')
+            
+            return sortAscending.value 
+              ? dateA - dateB  // 正序：最旧的在前
+              : dateB - dateA  // 倒序：最新的在前
+          })
+        }
+      })
+      
+      // 再对整个周期数组进行排序
       if (sortAscending.value) {
         // 正序：最旧的在上，最新的在下
         return sorted.sort((a, b) => {
@@ -354,6 +371,19 @@ export default {
       }
       
       return allMedia
+    }
+
+    // 判断是否应该显示事件日期
+    // 如果是每组日期的第一个事件，则显示
+    const shouldShowEventDate = (events, index) => {
+      if (index === 0) return true
+      
+      // 比较当前事件与前一个事件的日期，如果不同则显示
+      // 不需要考虑排序方向，因为事件列表已经根据排序方向重新排序了
+      const currentDate = events[index].date
+      const prevDate = events[index - 1].date
+      
+      return currentDate !== prevDate
     }
 
     // 自动定位到指定事件
@@ -474,6 +504,7 @@ export default {
       shouldPreloadImage,
       getImagePriority,
       getAllMediaItems,
+      shouldShowEventDate,
       loadingStrategy
     }
   }
@@ -669,6 +700,20 @@ export default {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   cursor: pointer;
+  position: relative;
+}
+
+.event-date {
+  position: absolute;
+  top: -10px;
+  left: 10px;
+  color: #7f8c8d;
+  font-size: 14px;
+  background-color: white;
+  padding: 2px 10px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1;
 }
 
 .event-card:hover {

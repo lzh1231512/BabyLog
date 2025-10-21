@@ -10,7 +10,12 @@
         <span class="hint-text">← 左右切换视频 →</span>
       </div>
       
-      <div class="large-video-container">
+      <div 
+        class="large-video-container"
+        @touchstart="handleTouchStart" 
+        @touchmove="handleTouchMove" 
+        @touchend="handleTouchEnd"
+      >
         <!-- Video player -->
         <div 
           ref="videoContainer" 
@@ -42,6 +47,7 @@ import 'video.js/dist/video-js.css'
 import { initializeVideoPlayer, formatDuration } from '@/utils/videoPlayerUtils'
 import VideoService from '@/services/videoService'
 import logger from '@/utils/videoLogger'
+import { createPhotoViewerGesture } from '@/utils/touchGestureManager'
 
 export default {
   name: 'VideoViewer',
@@ -79,6 +85,9 @@ export default {
     const videoContainer = ref(null)
     let player = null
     
+    // 触摸手势管理器
+    const gestureManager = ref(null)
+    
     // 同步 initialIndex 变化
     watch(() => props.initialIndex, (newVal) => {
       currentIndex.value = newVal
@@ -89,8 +98,19 @@ export default {
       if (newVal) {
         await nextTick()
         initPlayer()
+        
+        // 初始化手势管理器
+        setTimeout(() => {
+          initGestureManager()
+          gestureManager.value.activate()
+        }, 100)
       } else {
         disposePlayer()
+        
+        // 停用手势管理器
+        if (gestureManager.value) {
+          gestureManager.value.deactivate()
+        }
       }
     })
     
@@ -98,6 +118,11 @@ export default {
     const close = () => {
       // 清理视频播放器
       disposePlayer()
+      
+      // 停用手势管理器
+      if (gestureManager.value) {
+        gestureManager.value.deactivate()
+      }
       
       // 通知父组件关闭
       emit('close')
@@ -246,6 +271,13 @@ export default {
         initPlayer()
         // 通知父组件索引变化
         emit('indexChange', currentIndex.value)
+        
+        // 重新初始化手势管理器
+        if (gestureManager.value) {
+          gestureManager.value.deactivate()
+        }
+        initGestureManager()
+        gestureManager.value.activate()
       }
     }
 
@@ -257,6 +289,13 @@ export default {
         initPlayer()
         // 通知父组件索引变化
         emit('indexChange', currentIndex.value)
+        
+        // 重新初始化手势管理器
+        if (gestureManager.value) {
+          gestureManager.value.deactivate()
+        }
+        initGestureManager()
+        gestureManager.value.activate()
       }
     }
 
@@ -356,11 +395,55 @@ export default {
       document.addEventListener('keydown', handleKeyDown)
     })
 
+    // 初始化手势管理器
+    const initGestureManager = () => {
+      if (gestureManager.value) {
+        gestureManager.value.deactivate()
+      }
+      
+      gestureManager.value = createPhotoViewerGesture({
+        minScale: 1,  // 视频不需要缩放功能
+        maxScale: 1,
+        swipeThreshold: 50,
+        maxVerticalDistance: 100
+      })
+      
+      // 设置手势回调
+      gestureManager.value.on('swipeLeft', () => {
+        nextVideo()
+      })
+      
+      gestureManager.value.on('swipeRight', () => {
+        prevVideo()
+      })
+    }
+
+    // 触摸事件代理函数
+    const handleTouchStart = (e) => {
+      if (!props.show || !gestureManager.value) return
+      gestureManager.value.handleTouchStart(e)
+    }
+
+    const handleTouchMove = (e) => {
+      if (!props.show || !gestureManager.value) return
+      gestureManager.value.handleTouchMove(e)
+    }
+
+    const handleTouchEnd = (e) => {
+      if (!props.show || !gestureManager.value) return
+      gestureManager.value.handleTouchEnd(e)
+    }
+
     // 组件卸载时移除事件监听
     onBeforeUnmount(() => {
       document.removeEventListener('keydown', handleKeyDown)
       // 清理播放器
       disposePlayer()
+      
+      // 停用手势管理器
+      if (gestureManager.value) {
+        gestureManager.value.deactivate()
+      }
     })
 
     return {
@@ -375,7 +458,10 @@ export default {
       prevVideo,
       nextVideo,
       getThumbnailUrl,
-      formatDuration
+      formatDuration,
+      handleTouchStart,
+      handleTouchMove,
+      handleTouchEnd
     }
   }
 }
@@ -486,7 +572,7 @@ export default {
   font-size: 16px;
   margin: 0;
   position: absolute;
-  bottom: 40px;
+  top: 40px;
   left: 0;
   right: 0;
   text-align: center;
@@ -495,7 +581,7 @@ export default {
 .swipe-hint {
   display: block;
   position: absolute;
-  bottom: 10px;
+  top: 10px;
   left: 0;
   right: 0;
   text-align: center;
