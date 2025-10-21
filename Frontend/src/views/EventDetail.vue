@@ -172,7 +172,18 @@
       @close="closePhotoViewer"
       @indexChange="handlePhotoIndexChange"
     />
-
+    
+    <!-- 视频查看器模态框 -->
+    <video-viewer
+      v-if="event && event.media && event.media.videos"
+      :show="showVideoViewer"
+      :videos="event.media.videos"
+      :initialIndex="currentVideoIndex"
+      :eventId="event ? event.id : ''"
+      :getVideoUrl="getVideoUrl"
+      @close="closeVideoViewer"
+      @indexChange="handleVideoIndexChange"
+    />
 
   </div>
 </template>
@@ -183,11 +194,13 @@ import { useRoute, useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import { getEventById, deleteEvent, getMediaUrl } from '@/api/events'
 import PhotoViewer from '@/components/PhotoViewer.vue'
+import VideoViewer from '@/components/VideoViewer.vue'
 
 export default {
   name: 'EventDetail',
   components: {
-    PhotoViewer
+    PhotoViewer,
+    VideoViewer
   },
   setup() {
     const route = useRoute()
@@ -197,6 +210,8 @@ export default {
     const isPlaying = ref(false)
     const showPhotoViewer = ref(false)
     const currentPhotoIndex = ref(0)
+    const showVideoViewer = ref(false)
+    const currentVideoIndex = ref(0)
 
     const currentPlayingAudio = ref(-1)
     const isAudioPlaying = ref(false)
@@ -297,8 +312,45 @@ export default {
 
     // 打开视频播放器
     const openVideoPlayer = (video, index) => {
-      // 跳转到专门的视频播放页面
-      router.push(`/video-player/${event.value.id}/${index}`)
+      currentVideoIndex.value = index
+      showVideoViewer.value = true
+    }
+    
+    // 关闭视频播放器
+    const closeVideoViewer = () => {
+      showVideoViewer.value = false
+    }
+    
+    // 处理视频索引变化
+    const handleVideoIndexChange = (index) => {
+      currentVideoIndex.value = index
+    }
+    
+    // 获取视频URL的方法，供VideoViewer组件使用
+    const getVideoUrl = async (eventId, fileName) => {
+      try {
+        const { getVideoURL } = await import('@/api/events')
+        const response = await getVideoURL(eventId, fileName)
+        if (response && response.success && response.data) {
+          return {
+            success: true,
+            videoUrl: response.data.hlsUrl,
+            isTranscoded: response.data.isTranscoded
+          }
+        } else {
+          return {
+            success: false,
+            error: response.message || 'Failed to get video URL',
+            isProcessing: response.data?.isProcessing || false
+          }
+        }
+      } catch (error) {
+        console.error('Error getting video URL:', error)
+        return {
+          success: false,
+          error: 'Failed to get video URL'
+        }
+      }
     }
 
 
@@ -466,6 +518,8 @@ export default {
       isPlaying,
       showPhotoViewer,
       currentPhotoIndex,
+      showVideoViewer,
+      currentVideoIndex,
       currentPlayingAudio,
       isAudioPlaying,
       isAudioLoading,
@@ -484,6 +538,8 @@ export default {
       closePhotoViewer,
       handlePhotoIndexChange,
       openVideoPlayer,
+      closeVideoViewer,
+      handleVideoIndexChange,
       formatDuration,
       toggleAudio,
       onAudioLoadStart,
@@ -497,7 +553,8 @@ export default {
       editEvent,
       deleteEvent: handleDeleteEvent,
       loadEventDetail,
-      getMediaUrl
+      getMediaUrl,
+      getVideoUrl
     }
   }
 }
