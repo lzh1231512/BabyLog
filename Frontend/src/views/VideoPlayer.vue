@@ -52,7 +52,7 @@
           class="video-js-container"
           v-show="event"
         >
-          <div class="video-player-wrapper">
+          <div class="video-player-wrapper" ref="playerWrapper">
             <video
               id="video-player"
               ref="videoPlayer"
@@ -131,7 +131,7 @@ export default {
     const showDebugLog = ref(false);
     
     // Refs
-    const videoPlayer = ref(null);
+    const playerWrapper = ref(null);
     const videoContainer = ref(null);
     let player = null;
     
@@ -188,7 +188,7 @@ export default {
       }
       
       // Check if video data exists
-      if (!currentVideo.value || !event.value || !videoPlayer.value) {
+      if (!currentVideo.value || !event.value || !playerWrapper.value) {
         logger.error('Missing video data or player element');
         setError('视频数据或播放器元素不可用');
         return;
@@ -223,7 +223,7 @@ export default {
         // Initialize player
         player = initializeVideoPlayer(
           videojs, 
-          videoPlayer.value, 
+          playerWrapper.value, 
           playerConfig,
           onPlayerReady,
           onPlayerError
@@ -433,7 +433,7 @@ export default {
       showDebugLog,
       
       // Refs
-      videoPlayer,
+      playerWrapper,
       videoContainer,
       
       // Methods
