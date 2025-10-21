@@ -19,10 +19,10 @@
         <!-- Video player -->
         <div 
           ref="videoContainer" 
-          class="video-js-container"
+          class="video-player-container"
           v-show="currentVideo"
         >
-          <div class="video-player-wrapper" ref="playerWrapper">
+          <div ref="playerWrapper">
             <video
               id="video-player"
               ref="videoPlayer"
@@ -519,7 +519,7 @@ export default {
   flex-direction: column;
 }
 
-.video-js-container {
+.video-player-container {
   width: 100%;
   height: 100%;
   display: flex;
@@ -527,7 +527,7 @@ export default {
   justify-content: center;
 }
 
-.video-player-wrapper {
+.video-player-container > div {
   width: 100%;
   height: 100%;
   display: flex;
@@ -602,7 +602,7 @@ export default {
 /* 视频信息 */
 .video-info {
   position: absolute;
-  top: 10px;
+  top: 40px; /* 调整顶部位置，避免与 swipe-hint 重叠 */
   left: 0;
   right: 0;
   text-align: center;
@@ -731,7 +731,7 @@ export default {
 /* 响应式设计 */
 @media (max-width: 768px) {
   .large-video-container {
-    width: 100vw;
+    width: 95vw;
     height: 85vh;
     margin-bottom: 0;
     border-radius: 0;
@@ -766,7 +766,9 @@ export default {
   
   .large-video-container {
     width: 95vw;
-    height: 85vh;
+    /* 使用 calc 避免底部导航栏遮挡 */
+    height: calc(100vh - 60px);
+    margin-top: -20px; /* 调整垂直位置 */
   }
   
   .modal-close {
@@ -784,12 +786,14 @@ export default {
     z-index: 1010;
   }
   
-  .large-video-container {
-    width: 100%;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+  /* 移动设备上优化视频标题的位置 */
+  .video-info {
+    top: 60px;
+  }
+  
+  /* 调整 swipe-hint 在移动设备上的位置 */
+  .swipe-hint {
+    top: 5px;
   }
 }
 </style>
