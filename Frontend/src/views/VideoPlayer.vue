@@ -182,6 +182,11 @@ export default {
         try {
           player.dispose();
           player = null;
+          const videoEl = videoContainer.value.querySelector('video');
+          if (videoEl) {
+            //remove old video element
+            videoEl.parentNode.removeChild(videoEl);
+          }
         } catch (e) {
           logger.warning(`Error disposing player: ${e.message}`);
         }
@@ -219,11 +224,20 @@ export default {
             type: 'application/x-mpegURL' // HLS format
           }]
         };
+
+        // 创建 video 元素
+        const videoElement = document.createElement('video');
+        videoElement.id = 'video-player';
+        videoElement.className = 'video-js vjs-big-play-centered';
+        
+        // 清空容器并添加新创建的元素
+        playerWrapper.value.innerHTML = '';
+        playerWrapper.value.appendChild(videoElement);
         
         // Initialize player
         player = initializeVideoPlayer(
           videojs, 
-          playerWrapper.value, 
+          'video-player', 
           playerConfig,
           onPlayerReady,
           onPlayerError
