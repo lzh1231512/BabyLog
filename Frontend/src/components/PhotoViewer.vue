@@ -18,25 +18,22 @@
         <button class="zoom-btn reset" @click="resetZoom" v-if="imageScale !== 1">重置</button>
       </div>
       
-      <div class="photo-viewer" @touchstart="handleTouchStart" @touchmove="handleTouchMove" @touchend="handleTouchEnd">
-        <div class="current-photo">
-          <div 
-            class="large-photo-container"
-            @dblclick="handleDoubleClick"
-          >
-            <div 
-              class="large-photo-placeholder"
-              :style="{
-                backgroundImage: `url(${getImageUrl(currentIndex)})`,
-                transform: `scale(${imageScale}) translate(${imageTranslateX}px, ${imageTranslateY}px)`,
-                transition: imageScale === 1 ? 'transform 0.3s ease' : 'none'
-              }"
-            >
-              <span v-if="!getCurrentImageFilename()" class="photo-icon">📷</span>
-            </div>
-          </div>
-          
-          
+      <div 
+        class="large-photo-container"
+        @touchstart="handleTouchStart" 
+        @touchmove="handleTouchMove" 
+        @touchend="handleTouchEnd"
+        @dblclick="handleDoubleClick"
+      >
+        <div 
+          class="large-photo-placeholder"
+          :style="{
+            backgroundImage: `url(${getImageUrl(currentIndex)})`,
+            transform: `scale(${imageScale}) translate(${imageTranslateX}px, ${imageTranslateY}px)`,
+            transition: imageScale === 1 ? 'transform 0.3s ease' : 'none'
+          }"
+        >
+          <span v-if="!getCurrentImageFilename()" class="photo-icon">📷</span>
         </div>
       </div>
     </div>
@@ -427,16 +424,6 @@ export default {
   justify-content: center;
 }
 
-.photo-viewer {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.current-photo {
-  text-align: center;
-}
-
 .large-photo-container {
   width: 80vw; /* 使用视口宽度的80% */
   max-width: 1200px; /* 但不超过这个最大宽度 */
@@ -447,6 +434,10 @@ export default {
   position: relative;
   margin-bottom: 15px;
   background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .large-photo-placeholder {
@@ -577,35 +568,15 @@ export default {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .large-photo-container {
-    width: 100vw;
-    height: 85vh;
-    margin-bottom: 0;
-    border-radius: 0;
-  }
-  
-  .large-photo-placeholder {
-    font-size: 60px;
-    border-radius: 0;
-  }
-  
-  /* 移动端隐藏缩放控制按钮 */
-  .desktop-only {
-    display: none;
-  }
-  
-  .modal-content {
+.modal-content {
     max-width: 100vw;
     max-height: 100vh;
     width: 100%;
     height: 100%;
   }
   
-  .photo-viewer {
+  .modal-content {
     flex-direction: column;
-    gap: 0;
     align-items: center;
     width: 100%;
     height: 100%;
@@ -671,6 +642,25 @@ export default {
     opacity: 0.8;
     animation: fadeInOut 3s ease-in-out infinite;
   }
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .large-photo-container {
+    width: 100vw;
+    height: 85vh;
+    margin-bottom: 0;
+    border-radius: 0;
+  }
+  
+  .large-photo-placeholder {
+    font-size: 60px;
+    border-radius: 0;
+  }
+  
+  /* 移动端隐藏缩放控制按钮 */
+  .desktop-only {
+    display: none;
+  }
   
   .nav-btn {
     font-size: 30px;
@@ -725,7 +715,7 @@ export default {
     z-index: 1010;
   }
   
-  .current-photo {
+  .large-photo-container {
     width: 100%;
     height: 100vh;
     display: flex;

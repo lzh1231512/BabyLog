@@ -921,7 +921,7 @@ export default {
 }
 
 .back-btn {
-  background: white;
+  background: rgba(65, 105, 225, 0.7);
   border: none;
   padding: 10px 15px;
   border-radius: 10px;
