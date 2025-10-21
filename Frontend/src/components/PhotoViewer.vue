@@ -1,7 +1,7 @@
 <template>
   <div class="photo-modal" v-if="show">
     <div class="modal-backdrop" @click="close"></div>
-    <div class="modal-content" @touchstart="handleTouchStart" @touchmove="handleTouchMove" @touchend="handleTouchEnd">
+    <div class="modal-content">
       <button class="modal-close" @click="close">✕</button>
       
       <!-- PC端缩放控制按钮 -->
@@ -12,7 +12,7 @@
         <button class="zoom-btn reset" @click="resetZoom" v-if="imageScale !== 1">重置</button>
       </div>
       
-      <div class="photo-viewer">
+      <div class="photo-viewer" @touchstart="handleTouchStart" @touchmove="handleTouchMove" @touchend="handleTouchEnd">
         <button class="nav-btn prev" @click.stop="prevPhoto" v-if="currentIndex > 0">‹</button>
         <div class="current-photo">
           <div 
