@@ -75,41 +75,43 @@
             <div 
               v-for="(event, eventIndex) in period.events" 
               :key="event.id"
-              class="event-card"
               :data-event-id="event.id"
               @click="viewEvent(event)"
             >
               <div v-if="shouldShowEventDate(period.events, eventIndex)" class="event-date">{{ event.date }}</div>
-              <div class="event-photos">
-                <!-- 显示图片 -->
-                <LazyImage
-                  v-for="(image, photoIndex) in getAllMediaItems(event).slice(0, 4)" 
-                  :key="`${image.type}-${photoIndex}`"
-                  :src="getMediaUrl(event.id, image.fileName, true)"
-                  :alt="`${event.title} - ${image.type === 'video' ? '视频' : '图片'}${photoIndex + 1}`"
-                  :small="getAllMediaItems(event).length > 1"
-                  :preload="shouldPreloadImage(index, photoIndex)"
-                  :priority="getImagePriority(index, photoIndex)"
-                  :threshold="loadingStrategy.threshold"
-                  class="photo-item"
-                  :class="{ 
-                    'small': getAllMediaItems(event).length > 1,
-                    'video-thumbnail': image.type === 'video'
-                  }"
-                />
-                <div v-if="getAllMediaItems(event).length > 4" class="more-photos">
-                  +{{ getAllMediaItems(event).length - 4 }}
+              
+              <div class="event-card">
+                <div class="event-photos">
+                  <!-- 显示图片 -->
+                  <LazyImage
+                    v-for="(image, photoIndex) in getAllMediaItems(event).slice(0, 4)" 
+                    :key="`${image.type}-${photoIndex}`"
+                    :src="getMediaUrl(event.id, image.fileName, true)"
+                    :alt="`${event.title} - ${image.type === 'video' ? '视频' : '图片'}${photoIndex + 1}`"
+                    :small="getAllMediaItems(event).length > 1"
+                    :preload="shouldPreloadImage(index, photoIndex)"
+                    :priority="getImagePriority(index, photoIndex)"
+                    :threshold="loadingStrategy.threshold"
+                    class="photo-item"
+                    :class="{ 
+                      'small': getAllMediaItems(event).length > 1,
+                      'video-thumbnail': image.type === 'video'
+                    }"
+                  />
+                  <div v-if="getAllMediaItems(event).length > 4" class="more-photos">
+                    +{{ getAllMediaItems(event).length - 4 }}
+                  </div>
                 </div>
-              </div>
-              <div class="event-info">
-                <h3 class="event-title">{{ event.title }}</h3>
-                <p class="event-description">{{ event.description }}</p>
-                <div class="event-meta">
-                  <span v-if="event.media.audios.length > 0" class="audio-indicator">🎵</span>
-                  <span v-if="event.media.videos.length > 0" class="video-indicator">🎬</span>
-                  <span class="photo-count">{{ event.media.images.length }}张照片</span>
-                  <span v-if="event.media.videos.length > 0" class="video-count">{{ event.media.videos.length }}个视频</span>
-                  <span v-if="event.media.audios.length > 0" class="audio-count">{{ event.media.audios.length }}段音频</span>
+                <div class="event-info">
+                  <h3 class="event-title">{{ event.title }}</h3>
+                  <p class="event-description">{{ event.description }}</p>
+                  <div class="event-meta">
+                    <span v-if="event.media.audios.length > 0" class="audio-indicator">🎵</span>
+                    <span v-if="event.media.videos.length > 0" class="video-indicator">🎬</span>
+                    <span class="photo-count">{{ event.media.images.length }}张照片</span>
+                    <span v-if="event.media.videos.length > 0" class="video-count">{{ event.media.videos.length }}个视频</span>
+                    <span v-if="event.media.audios.length > 0" class="audio-count">{{ event.media.audios.length }}段音频</span>
+                  </div>
                 </div>
               </div>
             </div>
