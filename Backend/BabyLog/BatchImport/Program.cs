@@ -136,7 +136,7 @@ namespace BatchImport
 
             // Create events for each date
             int createdEvents = 0;
-            foreach (var dateGroup in filesByDate)
+            foreach (var dateGroup in filesByDate.OrderBy(f => f.Key))
             {
                 CreateEvent(dateGroup.Key, dateGroup.Value, nextId, targetPath);
                 nextId++;
