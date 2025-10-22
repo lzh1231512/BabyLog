@@ -33,3 +33,5 @@ pnpm-debug.log*
 /Backend/BabyLog/APITest/bin
 /Backend/BabyLog/APITest/obj
 /Backend/BabyLog/BabyLog/log
+/Backend/BabyLog/BatchImport/bin
+/Backend/BabyLog/BatchImport/obj
