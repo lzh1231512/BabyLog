@@ -60,6 +60,17 @@ namespace BabyLog.Controllers
                 });
             }
         }
+        //[HttpGet("test")]
+        //public async Task<IActionResult> Test()
+        //{
+        //    var eventFilePath = Path.Combine(_env.ContentRootPath, "Events", $"1.json");
+        //    var jsonContent = await System.IO.File.ReadAllTextAsync(eventFilePath);
+        //    var eventData = JsonSerializer.Deserialize<Event>(jsonContent, _jsonOptions);
+        //    await UpdateDateFromOtherEvent(eventData);
+        //    jsonContent = JsonSerializer.Serialize(eventData, _jsonOptions);
+        //    await System.IO.File.WriteAllTextAsync(eventFilePath, jsonContent, Encoding.UTF8);
+        //    return Ok(eventData);
+        //}
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetEventById(int id)
@@ -526,6 +537,7 @@ namespace BabyLog.Controllers
                     if (string.IsNullOrEmpty(item.Hash)) continue;
                     MediaItem bestMatch = null;
                     long bestDist = 100;
+                    int beatID = -1;
                     DateTime? bestCaptureTime = null;
                     foreach (var otherEvent in allEvents)
                     {
@@ -546,6 +558,7 @@ namespace BabyLog.Controllers
                                         bestMatch = otherItem;
                                         bestDist = hammingDist;
                                         bestCaptureTime = otherItem.CaptureTime;
+                                        beatID = otherEvent.Id;
                                     }
                                 }
                             }
@@ -555,7 +568,7 @@ namespace BabyLog.Controllers
                     if (bestMatch != null)
                     {
                         var curPath = Path.Combine(_env.ContentRootPath, "Events", eve.Id.ToString(), item.FileName);
-                        var bestPath = Path.Combine(_env.ContentRootPath, "Events", bestMatch.FileName);
+                        var bestPath = Path.Combine(_env.ContentRootPath, "Events", beatID.ToString(), bestMatch.FileName);
                         if (System.IO.File.Exists(bestPath))
                         {
                             var curSize = System.IO.File.Exists(curPath) ? new FileInfo(curPath).Length : 0;
@@ -580,6 +593,7 @@ namespace BabyLog.Controllers
                         if (!string.IsNullOrEmpty(bestCaptureTime?.ToString()))
                         {
                             eve.Date = bestCaptureTime.Value.ToString("yyyy-MM-dd");
+                            eve.IsDateValid = true;
                             updated = true;
                         }
                     }
