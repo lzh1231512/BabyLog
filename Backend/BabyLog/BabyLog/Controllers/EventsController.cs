@@ -1,3 +1,4 @@
+using BabyLog.Commons;
 using BabyLog.Models;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -314,23 +315,24 @@ namespace BabyLog.Controllers
             // Process all media types (images, videos, audios)
             if (eventData.Media.Images != null)
             {
-                await ProcessMediaItems(eventData.Media.Images, eventMediaDir);
+                await ProcessMediaItems(eventData.Media.Images, eventMediaDir,true,false);
             }
             
             if (eventData.Media.Videos != null)
             {
-                await ProcessMediaItems(eventData.Media.Videos, eventMediaDir);
+                await ProcessMediaItems(eventData.Media.Videos, eventMediaDir, false, true);
             }
             
             if (eventData.Media.Audios != null)
             {
-                await ProcessMediaItems(eventData.Media.Audios, eventMediaDir);
+                await ProcessMediaItems(eventData.Media.Audios, eventMediaDir, false, false);
             }
 
             return eventData;
         }
 
-        private async Task ProcessMediaItems(List<MediaItem> mediaItems, string targetDirectory)
+        private async Task ProcessMediaItems(List<MediaItem> mediaItems, string targetDirectory,
+            bool isImg, bool isVideo)
         {
             if (mediaItems == null || mediaItems.Count == 0)
                 return;
@@ -343,12 +345,11 @@ namespace BabyLog.Controllers
                     continue;
 
                 var tempFilePath = Path.Combine(tempFileDir, mediaItem.FileName);
-                
+                var targetFilePath = Path.Combine(targetDirectory, mediaItem.FileName);
+
                 // Check if the file exists in the TempFile folder
                 if (System.IO.File.Exists(tempFilePath))
                 {
-                    var targetFilePath = Path.Combine(targetDirectory, mediaItem.FileName);
-                    
                     // Copy file from temp to event folder
                     await CopyFileAsync(tempFilePath, targetFilePath);
                     
@@ -360,6 +361,18 @@ namespace BabyLog.Controllers
                     catch (Exception ex)
                     {
                         _logger.LogWarning(ex, $"Failed to delete temp file after transfer: {tempFilePath}");
+                    }
+                }
+                if (isImg || isVideo)
+                {
+                    if (string.IsNullOrEmpty(mediaItem.Hash))
+                    {
+                        mediaItem.Hash = isImg? PHashHelper.CalculateImageHashString(targetFilePath):
+                            PHashHelper.CalculateVideoHashString(targetFilePath);
+                    }
+                    if (mediaItem.CaptureTime == null)
+                    {
+                        mediaItem.CaptureTime= ChunkController.GetMediaCaptureTime(targetFilePath, _logger);
                     }
                 }
             }

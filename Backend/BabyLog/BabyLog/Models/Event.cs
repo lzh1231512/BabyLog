@@ -25,6 +25,10 @@ namespace BabyLog.Models
     {
         public string FileName { get; set; }
         public string Desc { get; set; }
+
+        public string Hash { get; set; }
+
+        public DateTime? CaptureTime { get; set; }
     }
 
     public class TimelineGroup

@@ -33,6 +33,9 @@ namespace BatchImport
     {
         public string FileName { get; set; } = "";
         public string Desc { get; set; } = "";
+        public string Hash { get; set; }
+
+        public DateTime? CaptureTime { get; set; }
     }
 
     internal class Program
@@ -220,15 +223,18 @@ namespace BatchImport
                 var mediaItem = new MediaItem
                 {
                     FileName = file.FileName,
-                    Desc = ""
+                    Desc = "",
+                    CaptureTime = GetMediaCaptureTime(targetFilePath, file.FileName)
                 };
 
                 if (file.IsImage)
                 {
+                    mediaItem.Hash = BabyLog.Commons.PHashHelper.CalculateImageHashString(targetFilePath);
                     eventData.Media.Images.Add(mediaItem);
                 }
                 else if (file.IsVideo)
                 {
+                    mediaItem.Hash = BabyLog.Commons.PHashHelper.CalculateVideoHashString(targetFilePath);
                     eventData.Media.Videos.Add(mediaItem);
                     
                     // Create task file for video transcoding

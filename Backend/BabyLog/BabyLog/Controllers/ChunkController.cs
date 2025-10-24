@@ -586,7 +586,7 @@ namespace BabyLog.Controllers
 
                 if (isImageOrVideo)
                 {
-                    captureTime = GetMediaCaptureTime(fullPath, uploadTask.OriginalFileName);
+                    captureTime = GetMediaCaptureTime(fullPath, uploadTask.OriginalFileName, _logger);
                     if (captureTime.HasValue)
                     {
                         _logger.LogInformation($"提取到文件拍摄时间: {captureTime.Value:o}, 文件: {serverFileName}");
@@ -691,7 +691,7 @@ namespace BabyLog.Controllers
         /// <summary>
         /// 从图片中提取EXIF数据中的拍摄时间
         /// </summary>
-        private DateTime? ExtractImageCaptureTime(string filePath)
+        private static DateTime? ExtractImageCaptureTime(string filePath, ILogger _logger)
         {
             try
             {
@@ -736,7 +736,7 @@ namespace BabyLog.Controllers
         /// <summary>
         /// 从视频中提取创建时间
         /// </summary>
-        private DateTime? ExtractVideoCaptureTime(string filePath)
+        private static DateTime? ExtractVideoCaptureTime(string filePath, ILogger _logger)
         {
             try
             {
@@ -766,7 +766,7 @@ namespace BabyLog.Controllers
         /// <summary>
         /// 尝试从文件名中提取日期时间
         /// </summary>
-        private DateTime? ExtractDateTimeFromFileName(string fileName)
+        private static DateTime? ExtractDateTimeFromFileName(string fileName, ILogger _logger)
         {
             try
             {
@@ -840,7 +840,7 @@ namespace BabyLog.Controllers
         /// <summary>
         /// 验证日期时间是否有效
         /// </summary>
-        private bool IsValidDateTime(int year, int month, int day, int hour, int minute, int second)
+        private static bool IsValidDateTime(int year, int month, int day, int hour, int minute, int second)
         {
             if (year < 1970 || year > DateTime.Now.Year + 1) return false;
             if (month < 1 || month > 12) return false;
@@ -863,7 +863,7 @@ namespace BabyLog.Controllers
         /// <summary>
         /// 获取媒体文件的拍摄时间
         /// </summary>
-        private DateTime? GetMediaCaptureTime(string filePath, string fileName)
+        public static DateTime? GetMediaCaptureTime(string filePath, string fileName, ILogger _logger)
         {
             DateTime? captureTime = null;
             string fileExtension = Path.GetExtension(fileName).ToLowerInvariant();
@@ -873,21 +873,26 @@ namespace BabyLog.Controllers
                 fileExtension == ".gif" || fileExtension == ".webp")
             {
                 // 尝试从图片EXIF中获取拍摄时间
-                captureTime = ExtractImageCaptureTime(filePath);
+                captureTime = ExtractImageCaptureTime(filePath, _logger);
             }
             else if (fileExtension == ".mp4" || fileExtension == ".mov")
             {
                 // 尝试从视频文件中获取拍摄时间
-                captureTime = ExtractVideoCaptureTime(filePath);
+                captureTime = ExtractVideoCaptureTime(filePath, _logger);
             }
             
             // 如果无法从媒体元数据中获取拍摄时间，尝试从文件名中提取
             if (captureTime == null)
             {
-                captureTime = ExtractDateTimeFromFileName(Path.GetFileNameWithoutExtension(fileName));
+                captureTime = ExtractDateTimeFromFileName(Path.GetFileNameWithoutExtension(fileName), _logger);
             }
             
             return captureTime;
+        }
+
+        public static DateTime? GetMediaCaptureTime(string filePath,  ILogger _logger)
+        {
+            return GetMediaCaptureTime(filePath, filePath, _logger);
         }
     }
 }
