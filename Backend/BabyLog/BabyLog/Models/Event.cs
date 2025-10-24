@@ -12,6 +12,7 @@ namespace BabyLog.Models
         public Media Media { get; set; }
         public string Date { get; set; }
         public string Location { get; set; }
+        public bool IsDateValid { get; set; }
     }
 
     public class Media

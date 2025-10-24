@@ -242,7 +242,36 @@ namespace BabyLog.Commons
             // 计算设置位的数量
             return BitOperations.PopCount(xor);
         }
-        
+        public static int HammingDistance(string hashStr1, string hashStr2,bool isImg)
+        {
+            if (isImg)
+            {
+                var h1 = StringToHash(hashStr1);
+                var h2 = StringToHash(hashStr2);
+                return HammingDistance(h1, h2);
+            }
+            else
+            {
+                var arr1 = StringToVideoHash(hashStr1);
+                var arr2 = StringToVideoHash(hashStr2);
+                return HammingDistance(arr1, arr2);
+            }
+        }
+
+        public static int HammingDistance(ulong[] videoHashes1, ulong[] videoHashes2)
+        {
+            if (videoHashes1.Length != videoHashes2.Length)
+            {
+                throw new ArgumentException("哈希数组长度必须相同");
+            }
+            int totalDistance = 0;
+            for (int i = 0; i < videoHashes1.Length; i++)
+            {
+                totalDistance += HammingDistance(videoHashes1[i], videoHashes2[i]);
+            }
+            return totalDistance / videoHashes1.Length;
+        }
+
         /// <summary>
         /// 将两个哈希之间的相似度计算为百分比 (100% = 完全相同)
         /// </summary>

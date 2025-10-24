@@ -327,7 +327,14 @@ namespace BabyLog.Controllers
             {
                 await ProcessMediaItems(eventData.Media.Audios, eventMediaDir, false, false);
             }
-
+            eventData.IsDateValid =
+                eventData.Media.Images.Any(f => f.CaptureTime.HasValue) ||
+                eventData.Media.Videos.Any(f => f.CaptureTime.HasValue);
+            if(!eventData.IsDateValid)
+            {
+                bool updated = await UpdateDateFromOtherEvent(eventData);
+                eventData.IsDateValid = updated;
+            }
             return eventData;
         }
 
@@ -502,5 +509,84 @@ namespace BabyLog.Controllers
                 .OrderBy(g => g.Events.FirstOrDefault()?.Date ?? string.Empty)
                 .ToList();
         }
+        async Task<bool> UpdateDateFromOtherEvent(Event eve)
+        {
+            bool updated = false;
+            var allEvents = await GetEventsFromFiles();
+            if (allEvents == null || allEvents.Count == 0) return false;
+            // 排除自身
+            allEvents = allEvents.Where(e => e.Id != eve.Id).ToList();
+            var mediaTypes = new[] { (eve.Media?.Images, true), (eve.Media?.Videos, false) };
+            foreach (var (mediaList, isImg) in mediaTypes)
+            {
+                if (mediaList == null) continue;
+                for (int i = 0; i < mediaList.Count; i++)
+                {
+                    var item = mediaList[i];
+                    if (string.IsNullOrEmpty(item.Hash)) continue;
+                    MediaItem bestMatch = null;
+                    long bestDist = 100;
+                    DateTime? bestCaptureTime = null;
+                    foreach (var otherEvent in allEvents)
+                    {
+                        var otherMediaList = isImg ? otherEvent.Media?.Images : otherEvent.Media?.Videos;
+                        if (otherMediaList == null) continue;
+                        foreach (var otherItem in otherMediaList)
+                        {
+                            if (string.IsNullOrEmpty(otherItem.Hash) || otherItem.CaptureTime == null) continue;
+                            // hash相近判断，可用Levenshtein距离或直接相等
+                            var hammingDist = PHashHelper.HammingDistance(item.Hash, otherItem.Hash,isImg);
+                            if (hammingDist <= 5)
+                            {
+                                var otherPath = Path.Combine(_env.ContentRootPath, "Events", otherEvent.Id.ToString(), otherItem.FileName);
+                                if (System.IO.File.Exists(otherPath))
+                                {
+                                    if (hammingDist < bestDist)
+                                    {
+                                        bestMatch = otherItem;
+                                        bestDist = hammingDist;
+                                        bestCaptureTime = otherItem.CaptureTime;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // 替换为更大的文件
+                    if (bestMatch != null)
+                    {
+                        var curPath = Path.Combine(_env.ContentRootPath, "Events", eve.Id.ToString(), item.FileName);
+                        var bestPath = Path.Combine(_env.ContentRootPath, "Events", bestMatch.FileName);
+                        if (System.IO.File.Exists(bestPath))
+                        {
+                            var curSize = System.IO.File.Exists(curPath) ? new FileInfo(curPath).Length : 0;
+                            if (new FileInfo(bestPath).Length > curSize)
+                            {
+                                try
+                                {
+                                    System.IO.File.Copy(bestPath, curPath, true);
+                                    _logger?.LogInformation($"Replaced media file {item.FileName} with larger file from event {bestMatch.FileName}");
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger?.LogWarning(ex, $"Failed to replace media file {item.FileName}");
+                                }
+                            }
+                        }
+                    }
+                    // 更新事件日期
+                    if (bestCaptureTime.HasValue && (mediaList[i].CaptureTime == null || mediaList[i].CaptureTime < bestCaptureTime))
+                    {
+                        mediaList[i].CaptureTime = bestCaptureTime;
+                        if (!string.IsNullOrEmpty(bestCaptureTime?.ToString()))
+                        {
+                            eve.Date = bestCaptureTime.Value.ToString("yyyy-MM-dd");
+                            updated = true;
+                        }
+                    }
+                }
+            }
+            return updated;
+        }
+
     }
 }
