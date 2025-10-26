@@ -43,7 +43,7 @@ namespace BatchImport
     {
         static int Main(string[] args)
         {
-            args= new string[] { "C:\\Users\\zack liu\\Pictures\\Screenshots", "D:\\新建文件夹" }; // For testing purpose only
+            //args= new string[] { "C:\\Users\\zack liu\\Pictures\\Screenshots", "D:\\新建文件夹" }; // For testing purpose only
             // Validate command-line arguments - now only need source and target paths
             if (args.Length < 2)
             {

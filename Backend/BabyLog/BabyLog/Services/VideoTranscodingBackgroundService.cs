@@ -28,11 +28,18 @@ namespace BabyLog.Services
             _recurringJobManager = recurringJobManager;  // Ìí¼Ó´ËÐÐ
         }
 
+        private static bool isRunding = false;
+
         [AutomaticRetry(Attempts = 3)]
         public async Task ProcessVideoTranscodingTasks()
         {
             try
             {
+                if (isRunding)
+                {
+                    return;
+                }
+                isRunding= true;
                 _logger.LogInformation("Starting video transcoding task processing");
                 
                 var tasksDir = Path.Combine(_env.ContentRootPath, "Tasks");
@@ -102,6 +109,7 @@ namespace BabyLog.Services
                 _logger.LogError(ex, "Error processing video transcoding tasks");
                 throw; // Let Hangfire retry
             }
+            isRunding = false;
         }
         
         [AutomaticRetry(Attempts = 0)] // Don't retry this job
