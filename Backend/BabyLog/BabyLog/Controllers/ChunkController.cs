@@ -132,6 +132,43 @@ namespace BabyLog.Controllers
             }
         }
 
+        private void CleanUpOldFiles()
+        {
+            try
+            {
+                var tempFileDirectory = Path.Combine(_env.ContentRootPath, "TempFile");
+                if (!Directory.Exists(tempFileDirectory))
+                {
+                    return;
+                }
+
+                var currentDate = DateTime.Now;
+                var files = Directory.GetFiles(tempFileDirectory);
+
+                foreach (var file in files)
+                {
+                    var fileInfo = new FileInfo(file);
+                    // Check if the file's last access time is older than 3 months
+                    if ((currentDate - fileInfo.LastAccessTime).TotalDays > 90)
+                    {
+                        try
+                        {
+                            System.IO.File.Delete(file);
+                            _logger.LogInformation($"Deleted old file: {fileInfo.Name}");
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, $"Failed to delete old file: {fileInfo.Name}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cleaning up old files");
+            }
+        }
+
         /// <summary>
         /// 将任务信息保存到JSON文件中
         /// </summary>
@@ -268,6 +305,7 @@ namespace BabyLog.Controllers
                 }
 
                 // 自动清理过期任务
+                CleanUpOldFiles();
                 CleanupExpiredChunkUploadTasks();
 
                 // 生成唯一的任务ID

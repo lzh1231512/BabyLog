@@ -1,5 +1,13 @@
 <template>
   <div class="video-modal" v-if="show">
+    <!-- Snackbar 提示组件 -->
+    <Snackbar 
+      v-model="snackbar.show"
+      :message="snackbar.message" 
+      :subtext="snackbar.subtext" 
+      :type="snackbar.type"
+      :duration="snackbar.duration"
+    />
     <div class="modal-backdrop" @click="close"></div>
     <div class="modal-content">
       <button class="modal-close" @click="close">✕</button>
@@ -33,7 +41,7 @@
         
         <!-- Video info -->
         <div class="video-info">
-          <h2 class="video-title">{{ currentVideo?.desc || '视频' }}</h2>
+          <h2 class="video-title">{{ currentVideo?.desc || '' }}</h2>
         </div>
       </div>
     </div>
@@ -42,6 +50,7 @@
 
 <script>
 import { ref, watch, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import Snackbar from '@/components/Snackbar.vue'
 import videojs from 'video.js'
 import 'video.js/dist/video-js.css'
 import { initializeVideoPlayer, formatDuration } from '@/utils/videoPlayerUtils'
@@ -51,6 +60,9 @@ import { createPhotoViewerGesture } from '@/utils/touchGestureManager'
 
 export default {
   name: 'VideoViewer',
+  components: {
+    Snackbar
+  },
   props: {
     show: {
       type: Boolean,
@@ -76,6 +88,14 @@ export default {
   emits: ['close', 'indexChange'],
   setup(props, { emit }) {
     const currentIndex = ref(props.initialIndex)
+    // Snackbar相关状态
+    const snackbar = ref({
+      show: false,
+      message: '',
+      subtext: '',
+      type: 'info',
+      duration: 4000
+    })
     const loading = ref(false)
     const error = ref(null)
     const checkInterval = ref(null)
@@ -299,6 +319,21 @@ export default {
       }
     }
 
+    // Snackbar显示辅助函数
+    const showSnackbar = (message, options = {}) => {
+      snackbar.value.show = false;
+      nextTick(() => {
+        snackbar.value = {
+          show: true,
+          message,
+          subtext: options.subtext || '',
+          type: options.type || 'info',
+          duration: options.duration || 4000
+        };
+        logger.info('显示Snackbar:', snackbar.value);
+      });
+    }
+
     // 错误处理
     const setError = (message, isProcessing = false) => {
       error.value = {
@@ -308,67 +343,28 @@ export default {
       
       if (isProcessing) {
         logger.warning(`Processing error: ${message}`)
-        // 开始自动检查转码状态
-        startTranscodeCheck()
+        // Snackbar提示转码未完成
+        showSnackbar('视频正在转码中，请稍后再试', {
+          subtext: message,
+          type: 'warning',
+          duration: 3000
+        })
       } else {
         logger.error(`Error: ${message}`)
+        // Snackbar提示错误信息
+        showSnackbar(`错误: ${message}`, {
+          type: 'error',
+          duration: 3000
+        })
       }
-    }
-    
-    // 清除错误信息
-    const clearError = () => {
-      error.value = null
-      if (checkInterval.value) {
-        clearInterval(checkInterval.value)
-        checkInterval.value = null
-      }
-    }
-    
-    // 检查转码状态
-    const startTranscodeCheck = () => {
-      if (checkInterval.value) {
-        clearInterval(checkInterval.value)
-      }
-      
-      logger.info('Starting automatic transcode check')
-      
-      let checkCount = 0
-      const maxChecks = 20 // Maximum 20 checks (about 1 minute)
-      
-      checkInterval.value = setInterval(async () => {
-        checkCount++
-        logger.info(`Transcode check #${checkCount}`)
-        
-        if (!props.eventId || !currentVideo.value) {
-          clearInterval(checkInterval.value)
-          return
-        }
-        
-        try {
-          const urlResult = await VideoService.getVideoUrl(
-            props.eventId, 
-            currentVideo.value.fileName
-          )
-          
-          if (urlResult.success) {
-            logger.success('Transcoding complete, initializing player')
-            clearInterval(checkInterval.value)
-            clearError()
-            initPlayer()
-          } else if (checkCount >= maxChecks) {
-            logger.warning('Maximum transcode checks reached')
-            clearInterval(checkInterval.value)
-            setError('视频转码时间过长，请稍后重试')
-          } else if (!urlResult.isProcessing) {
-            logger.error(`Error checking transcode status: ${urlResult.error}`)
-            clearInterval(checkInterval.value)
-            setError(urlResult.error)
-          }
-        } catch (err) {
-          logger.error(`Error checking transcode status: ${err.message}`)
-        }
+      // 3秒后自动关闭弹窗
+      setTimeout(() => {
+        close()
       }, 3000)
     }
+    
+    
+    // 移除自动检查转码逻辑
 
     // 键盘事件处理
     const handleKeyDown = (e) => {
@@ -461,7 +457,9 @@ export default {
       formatDuration,
       handleTouchStart,
       handleTouchMove,
-      handleTouchEnd
+      handleTouchEnd,
+      snackbar,
+      showSnackbar
     }
   }
 }

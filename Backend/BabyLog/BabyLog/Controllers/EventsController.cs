@@ -296,7 +296,7 @@ namespace BabyLog.Controllers
                     continue;
                     
                 // Check if this video is already processed
-                var processedMarkerPath = Path.Combine(_env.ContentRootPath, "Events", eventData.Id.ToString(), $"{video.FileName}.processed");
+                var processedMarkerPath = Path.Combine(_env.ContentRootPath, "Events", "VideoFlag", eventData.Id.ToString(), $"{video.FileName}.processed");
                 if (System.IO.File.Exists(processedMarkerPath))
                     continue;
                     

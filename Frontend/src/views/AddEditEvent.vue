@@ -266,9 +266,6 @@
           <button type="submit" class="save-btn" :disabled="!isFormValid || saving">
             {{ saving ? '保存中...' : (isEdit ? '保存修改' : '创建事件') }}
           </button>
-          <button type="button" class="debug-btn" @click="testSnackbar" title="测试提示条">
-            测试提示
-          </button>
         </div>
       </form>
       
@@ -826,30 +823,9 @@ export default {
         router.push('/')
       }
     }
-    
-    // 用于测试Snackbar的函数
-    const testSnackbar = () => {
-      const types = ['success', 'info', 'warning', 'error'];
-      const randomType = types[Math.floor(Math.random() * types.length)];
-      
-      showSnackbar(`这是一条${randomType}提示消息`, {
-        type: randomType,
-        subtext: '用于测试Snackbar组件',
-        duration: 3000
-      });
-    }
 
     onMounted(async () => {
       await loadEditData()
-      
-      // 测试Snackbar组件是否正常工作
-      setTimeout(() => {
-        showSnackbar('欢迎使用BabyLog', {
-          type: 'success',
-          subtext: '记录美好时刻',
-          duration: 3000
-        });
-      }, 1000);
     })
 
     onUnmounted(() => {
@@ -895,8 +871,7 @@ export default {
       route,
       retryUpload,
       chunkUploader,
-      showSnackbar,
-      testSnackbar
+      showSnackbar
     }
   }
 }

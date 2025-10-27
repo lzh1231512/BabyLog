@@ -503,15 +503,33 @@ export default {
       await loadEventDetail()
       // 确保页面滚动到顶部
       window.scrollTo(0, 0)
-      
       // 添加键盘事件监听
       document.addEventListener('keydown', handleKeyDown)
+      // 移动端返回按钮拦截
+      window.addEventListener('popstate', handleMobileBack)
     })
 
     // 组件卸载时移除事件监听
     onBeforeUnmount(() => {
       document.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('popstate', handleMobileBack)
     })
+
+    // 移动端返回按钮拦截
+    const handleMobileBack = () => {
+      if (showPhotoViewer.value) {
+        closePhotoViewer()
+        // 阻止返回
+        history.pushState(null, '', location.href)
+        return
+      }
+      if (showVideoViewer.value) {
+        closeVideoViewer()
+        history.pushState(null, '', location.href)
+        return
+      }
+      goBack()
+    }
 
     return {
       event,

@@ -84,7 +84,9 @@ namespace BabyLog.Services
                             .WithAudioBitrate(_debugAudioBitrate)
                             .WithCustomArgument(_debugResolution.Length > 0 ? $"-vf scale={_debugResolution}" : "")
                             .WithCustomArgument("-hls_time 3 -hls_list_size 0 " +
-                                                $"-hls_segment_filename \"{targetFolderPath}/segment_%03d.ts\""));
+                                                $"-hls_segment_filename \"{targetFolderPath}/segment_%03d.ts\"")
+                            .WithCustomArgument("-profile:v baseline -level 3.0")
+                            .WithCustomArgument("-ac 2 -ar 44100"));
                     _logger.LogInformation($"使用调试模式转码参数: 时长={_debugModeVideoDuration}秒, CRF={_debugCrf}, 预设={_debugPreset}, 音频比特率={_debugAudioBitrate}kbps");
                 }
                 else
@@ -99,7 +101,9 @@ namespace BabyLog.Services
                             .WithAudioBitrate(_standardAudioBitrate)
                             .WithCustomArgument(_standardResolution.Length > 0 ? $"-vf scale={_standardResolution}" : "")
                             .WithCustomArgument("-hls_time 10 -hls_list_size 0 " +
-                                                $"-hls_segment_filename \"{targetFolderPath}/segment_%03d.ts\""));
+                                                $"-hls_segment_filename \"{targetFolderPath}/segment_%03d.ts\"")
+                            .WithCustomArgument("-profile:v baseline -level 3.0")
+                            .WithCustomArgument("-ac 2 -ar 44100"));
                     _logger.LogInformation($"使用标准模式转码参数: CRF={_standardCrf}, 预设={_standardPreset}, 音频比特率={_standardAudioBitrate}kbps");
                 }
 
@@ -109,7 +113,7 @@ namespace BabyLog.Services
                 if (success)
                 {
                     _logger.LogInformation($"Successfully transcoded video to HLS: {targetM3U8Path}");
-                    var processedMarkerPath = Path.Combine(_env.ContentRootPath, "Events", eventId.ToString(), $"{fileName}.processed");
+                    var processedMarkerPath = Path.Combine(_env.ContentRootPath, "Events", "VideoFlag", eventId.ToString(), $"{fileName}.processed");
                     File.WriteAllText(processedMarkerPath, DateTime.UtcNow.ToString("o"));
                 }
                 else

@@ -397,7 +397,7 @@ export default {
       if (eventCard) {
         // 滚动到指定位置并高亮显示
         eventCard.scrollIntoView({ 
-          behavior: 'smooth', 
+          behavior: 'auto', 
           block: 'center' 
         })
       
