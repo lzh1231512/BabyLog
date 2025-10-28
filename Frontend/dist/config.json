@@ -1,5 +1,8 @@
 {
-    "API_BASE_URL": "http://127.0.0.1:5099",
+    "API_BASE_URLs": [
+        { "url": "https://bb.lzhsb.cc", "priority": 1 },
+        { "url": "http://localhost:5099", "priority": 3 }
+    ],
     "BasePath": "/",
     "_BasePath_Comment": "BasePath 是应用的根路径，通常为 '/',如果应用部署在子路径下，请修改为对应的子路径,eg: '/myapp/'",
     "ShowDebugLog": false

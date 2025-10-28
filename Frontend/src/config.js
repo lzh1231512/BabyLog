@@ -1,5 +1,7 @@
+import { selectBackend } from './utils/backendSelector';
 
 let configData = null;
+let backendURL = '';
 export async function loadConfig() {
   if (configData) return configData;
 
@@ -10,6 +12,7 @@ export async function loadConfig() {
       const response = await fetch(`${path}config.json`);
       if (response.ok) {
         configData = await response.json();
+        backendURL = await selectBackend(configData.API_BASE_URLs);
         return configData;
       }
     } catch (e) {
@@ -20,12 +23,16 @@ export async function loadConfig() {
   throw new Error('配置文件 config.json 加载失败');
 }
 
+export async function getBackendURL() {
+  if (!configData) {
+    await loadConfig();
+  }
+  return await selectBackend(configData.API_BASE_URLs);
+}
+
 export default {
   get API_BASE_URL() {
-    if(process.env.NODE_ENV === 'development'){
-      return '';
-    }
-    return configData ? configData.API_BASE_URL : '';
+    return backendURL;
   },
   get BasePath() {
     return configData ? configData.BasePath : '';

@@ -1,36 +1,6 @@
 // 事件相关的API接口
 import axios from 'axios'
-import config from '../config'
-// API配置
-const API_CONFIG = {
-  baseURL: config.API_BASE_URL,
-  timeout: 10000,
-}
-
-// 创建axios实例
-const apiClient = axios.create(API_CONFIG)
-
-// 请求拦截器
-apiClient.interceptors.request.use(
-  config => {
-    // 可以在这里添加认证token等
-    return config
-  },
-  error => {
-    return Promise.reject(error)
-  }
-)
-
-// 响应拦截器
-apiClient.interceptors.response.use(
-  response => {
-    return response
-  },
-  error => {
-    console.error('API请求错误:', error)
-    return Promise.reject(error)
-  }
-)
+import config,{getBackendURL} from '../config'
 
 // API接口函数
 
@@ -39,7 +9,8 @@ apiClient.interceptors.response.use(
  */
 export const getEventsList = async () => {
   try {
-    const response = await apiClient.get('/api/Events')
+    const baseURL = await getBackendURL()
+    const response = await axios.get(baseURL + '/api/Events')
     // 直接返回API响应，因为后端已经是标准格式
     return response.data
   } catch (error) {
@@ -56,7 +27,8 @@ export const getEventsList = async () => {
  */
 export const getEventById = async (id) => {
   try {
-    const response = await apiClient.get(`/api/Events/${id}`)
+    const baseURL = await getBackendURL()
+    const response = await axios.get(`${baseURL}/api/Events/${id}`)
     // 直接返回API响应，因为后端已经是标准格式
     return response.data
   } catch (error) {
@@ -77,7 +49,8 @@ export const getEventById = async (id) => {
 
 export const getVideoRotation = async (id, fileName) => {
   try {
-    const response = await apiClient.get(`/api/files/getVideoRotation?id=${id}&fileName=${encodeURIComponent(fileName)}`)
+    const baseURL = await getBackendURL()
+    const response = await axios.get(`${baseURL}/api/files/getVideoRotation?id=${id}&fileName=${encodeURIComponent(fileName)}`)
     // 直接返回API响应，因为后端已经是标准格式
     return response.data
   } catch (error) {
@@ -101,7 +74,8 @@ export const getVideoRotation = async (id, fileName) => {
  */
 export const createEvent = async (eventData) => {
   try {
-    const response = await apiClient.post('/api/Events', eventData)
+    const baseURL = await getBackendURL()
+    const response = await axios.post(`${baseURL}/api/Events`, eventData)
     // 直接返回API响应，因为后端已经是标准格式
     return response.data
   } catch (error) {
@@ -118,7 +92,8 @@ export const createEvent = async (eventData) => {
  */
 export const updateEvent = async (id, eventData) => {
   try {
-    const response = await apiClient.post(`/api/Events/update/${id}`, eventData)
+    const baseURL = await getBackendURL()
+    const response = await axios.post(`${baseURL}/api/Events/update/${id}`, eventData)
     // 直接返回API响应，因为后端已经是标准格式
     return response.data
   } catch (error) {
@@ -142,7 +117,8 @@ export const updateEvent = async (id, eventData) => {
  */
 export const deleteEvent = async (id) => {
   try {
-    const response = await apiClient.post(`/api/Events/delete/${id}`)
+    const baseURL = await getBackendURL()
+    const response = await axios.post(`${baseURL}/api/Events/delete/${id}`)
     // 直接返回API响应，因为后端已经是标准格式
     return response.data
   } catch (error) {
@@ -168,8 +144,9 @@ export const uploadFile = async (file) => {
   try {
     const formData = new FormData()
     formData.append('file', file)
-    
-    const response = await apiClient.post('/api/Files/upload', formData, {
+
+    const baseURL = await getBackendURL()
+    const response = await axios.post(`${baseURL}/api/Files/upload`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
@@ -196,7 +173,8 @@ export const uploadFiles = async (files) => {
       formData.append('files', file)
     })
     
-    const response = await apiClient.post('/api/Files/upload-multiple', formData, {
+    const baseURL = await getBackendURL()
+    const response = await axios.post(`${baseURL}/api/Files/upload-multiple`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
@@ -292,7 +270,8 @@ export const getStats = async () => {
  */
 export const initChunk = async (request) => {
   try {
-    const response = await apiClient.post('/api/Chunk/init', request)
+    const baseURL = await getBackendURL()
+    const response = await axios.post(`${baseURL}/api/Chunk/init`, request)
     // 直接返回API响应，因为后端已经是标准格式
     return response.data
   } catch (error) {
@@ -322,7 +301,8 @@ export const uploadChunk = async (taskId, chunkIndex, file) => {
     const formData = new FormData()
     formData.append('file', file)
 
-    const response = await apiClient.post(`/api/Chunk/upload?taskId=${encodeURIComponent(taskId)}&chunkIndex=${chunkIndex}`, formData, {
+    const baseURL = await getBackendURL()
+    const response = await axios.post(`${baseURL}/api/Chunk/upload?taskId=${encodeURIComponent(taskId)}&chunkIndex=${chunkIndex}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
@@ -355,7 +335,8 @@ export const uploadChunk = async (taskId, chunkIndex, file) => {
  */
 export const completeChunk = async (taskId) => {
   try {
-    const response = await apiClient.post(`/api/Chunk/complete?taskId=${encodeURIComponent(taskId)}`)
+    const baseURL = await getBackendURL()
+    const response = await axios.post(`${baseURL}/api/Chunk/complete?taskId=${encodeURIComponent(taskId)}`)
     // 直接返回API响应，因为后端已经是标准格式
     return response.data
   } catch (error) {
@@ -381,7 +362,8 @@ export const completeChunk = async (taskId) => {
  */
 export const getVideoURL = async (id, fileName) => {
   try {
-    const response = await apiClient.get(`/api/VideoStreaming/check/${id}/${encodeURIComponent(fileName)}`)
+    const baseURL = await getBackendURL()
+    const response = await axios.get(`${baseURL}/api/VideoStreaming/check/${id}/${encodeURIComponent(fileName)}`)
     // 直接返回API响应，因为后端已经是标准格式
     return response.data
   } catch (error) {

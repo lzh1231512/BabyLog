@@ -139,57 +139,72 @@ namespace BabyLog.Commons
         /// <returns>3个提取帧的pHash值数组</returns>
         public static ulong[] CalculateVideoHash(string filePath)
         {
-            var frameTimestamps = new[] { 1, 3, 5 }; // 秒
-            var hashes = new ulong[frameTimestamps.Length];
-            
-            for (int i = 0; i < frameTimestamps.Length; i++)
+            // 获取视频时长（秒）
+            var mediaInfo = FFProbe.Analyse(filePath);
+            double duration = mediaInfo.Duration.TotalSeconds;
+            List<double> frameTimestamps = new();
+
+            if (duration < 10)
+            {
+                // 取1/3、2/3、结尾
+                frameTimestamps.Add(duration / 3);
+                frameTimestamps.Add(2 * duration / 3);
+                frameTimestamps.Add(Math.Max(duration - 0.5, 0));
+            }
+            else if (duration < 60)
+            {
+                // 取1/4、1/2、3/4、结尾
+                frameTimestamps.Add(duration / 4);
+                frameTimestamps.Add(duration / 2);
+                frameTimestamps.Add(3 * duration / 4);
+                frameTimestamps.Add(Math.Max(duration - 0.5, 0));
+            }
+            else
+            {
+                // 0%、20%、40%、60%、80%、结尾
+                for (int i = 0; i < 5; i++)
+                {
+                    frameTimestamps.Add(duration * i / 5);
+                }
+                frameTimestamps.Add(Math.Max(duration - 0.5, 0));
+            }
+
+            var hashes = new ulong[frameTimestamps.Count];
+
+            for (int i = 0; i < frameTimestamps.Count; i++)
             {
                 var timestamp = frameTimestamps[i];
-                
-                // 为提取的帧创建临时文件
                 string tempFramePath = Path.Combine(Path.GetTempPath(), $"frame_{Guid.NewGuid()}.jpg");
-                
                 try
                 {
-                    // 提取指定时间戳的帧
                     FFMpegArguments
                         .FromFileInput(filePath)
                         .OutputToFile(tempFramePath, false, options => options
                             .Seek(TimeSpan.FromSeconds(timestamp))
                             .WithFrameOutputCount(1))
                         .ProcessSynchronously();
-                    
-                    // 计算提取帧的哈希
                     if (File.Exists(tempFramePath))
                     {
                         hashes[i] = CalculateImageHash(tempFramePath);
                     }
                     else
                     {
-                        // 如果此帧提取失败，使用默认值
                         hashes[i] = 0;
                     }
                 }
                 catch (Exception ex)
                 {
-                    // 处理帧提取期间的任何异常
-                    Console.WriteLine($"提取 {timestamp}秒 的帧时出错: {ex.Message}");
+                    Console.WriteLine($"提取 {timestamp:F2}秒 的帧时出错: {ex.Message}");
                     hashes[i] = 0;
                 }
                 finally
                 {
-                    // 清理临时文件
                     if (File.Exists(tempFramePath))
                     {
-                        try
-                        {
-                            File.Delete(tempFramePath);
-                        }
-                        catch { /* 忽略清理错误 */ }
+                        try { File.Delete(tempFramePath); } catch { }
                     }
                 }
             }
-            
             return hashes;
         }
 
