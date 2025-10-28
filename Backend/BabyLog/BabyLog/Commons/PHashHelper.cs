@@ -144,29 +144,23 @@ namespace BabyLog.Commons
             double duration = mediaInfo.Duration.TotalSeconds;
             List<double> frameTimestamps = new();
 
-            if (duration < 10)
+            if (duration < 3)
             {
                 // 取1/3、2/3、结尾
-                frameTimestamps.Add(duration / 3);
-                frameTimestamps.Add(2 * duration / 3);
-                frameTimestamps.Add(Math.Max(duration - 0.5, 0));
+                frameTimestamps.Add(1);
             }
-            else if (duration < 60)
+            else if (duration > 5)
             {
                 // 取1/4、1/2、3/4、结尾
-                frameTimestamps.Add(duration / 4);
-                frameTimestamps.Add(duration / 2);
-                frameTimestamps.Add(3 * duration / 4);
-                frameTimestamps.Add(Math.Max(duration - 0.5, 0));
+                frameTimestamps.Add(1);
+                frameTimestamps.Add(3);
+                frameTimestamps.Add(5);
             }
             else
             {
-                // 0%、20%、40%、60%、80%、结尾
-                for (int i = 0; i < 5; i++)
-                {
-                    frameTimestamps.Add(duration * i / 5);
-                }
-                frameTimestamps.Add(Math.Max(duration - 0.5, 0));
+                frameTimestamps.Add(1);
+                frameTimestamps.Add(2);
+                frameTimestamps.Add(3);
             }
 
             var hashes = new ulong[frameTimestamps.Count];
