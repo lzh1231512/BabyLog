@@ -775,15 +775,21 @@ export default {
           media: {
             images: formData.value.media.images.map(img => ({
               fileName: img.fileName, // 这里保存的是服务器端文件名
-              desc: img.desc
+              desc: img.desc,
+              hash:'',
+              captureTime:null
             })),
             videos: formData.value.media.videos.map(vid => ({
               fileName: vid.fileName, // 这里保存的是服务器端文件名
-              desc: vid.desc
+              desc: vid.desc,
+              hash:'',
+              captureTime:null
             })),
             audios: formData.value.media.audios.map(aud => ({
               fileName: aud.fileName, // 这里保存的是服务器端文件名
-              desc: aud.desc
+              desc: aud.desc,
+              hash:'',
+              captureTime:null
             }))
           }
         }

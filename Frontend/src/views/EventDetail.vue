@@ -190,7 +190,7 @@
 
 <script>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import dayjs from 'dayjs'
 import { getEventById, deleteEvent, getMediaUrl } from '@/api/events'
 import PhotoViewer from '@/components/PhotoViewer.vue'
@@ -505,31 +505,27 @@ export default {
       window.scrollTo(0, 0)
       // 添加键盘事件监听
       document.addEventListener('keydown', handleKeyDown)
-      // 移动端返回按钮拦截
-      window.addEventListener('popstate', handleMobileBack)
     })
 
     // 组件卸载时移除事件监听
     onBeforeUnmount(() => {
       document.removeEventListener('keydown', handleKeyDown)
-      window.removeEventListener('popstate', handleMobileBack)
     })
 
-    // 移动端返回按钮拦截
-    const handleMobileBack = () => {
+    onBeforeRouteLeave((to, from, next) => {
       if (showPhotoViewer.value) {
         closePhotoViewer()
-        // 阻止返回
-        history.pushState(null, '', location.href)
+        // 阻止路由跳转
+        next(false)
         return
       }
       if (showVideoViewer.value) {
         closeVideoViewer()
-        history.pushState(null, '', location.href)
+        next(false)
         return
       }
-      goBack()
-    }
+      next()
+    })
 
     return {
       event,
