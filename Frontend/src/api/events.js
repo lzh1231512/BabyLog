@@ -201,6 +201,13 @@ export const getMediaUrl = (id, fileName, thumbnail) => {
   return `${baseURL}/api/Files/download?id=${encodeURIComponent(id)}&fileName=${encodeURIComponent(fileName)}&thumbnail=${thumbnail}`
 }
 
+export const getMediaUrlNew = async (id, fileName, thumbnail) => {
+  if(!thumbnail)
+    thumbnail = false
+  const baseURL = await getBackendURL()
+  return `${baseURL}/api/Files/download?id=${encodeURIComponent(id)}&fileName=${encodeURIComponent(fileName)}&thumbnail=${thumbnail}`
+}
+
 /**
  * 获取统计数据
  */

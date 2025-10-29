@@ -86,7 +86,8 @@
                   <LazyImage
                     v-for="(image, photoIndex) in getAllMediaItems(event).slice(0, 4)" 
                     :key="`${image.type}-${photoIndex}`"
-                    :src="getMediaUrl(event.id, image.fileName, true)"
+                    :id="event.id"
+                    :fileName="image.fileName"
                     :alt="`${event.title} - ${image.type === 'video' ? '视频' : '图片'}${photoIndex + 1}`"
                     :small="getAllMediaItems(event).length > 1"
                     :preload="shouldPreloadImage(index, photoIndex)"

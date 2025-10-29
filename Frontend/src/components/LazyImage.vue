@@ -39,11 +39,16 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { imagePerformanceMonitor } from '@/utils/imagePerformance'
 import { optimizeImageUrl } from '@/utils/imageOptimization'
+import { getMediaUrlNew } from '@/api/events'
 
 export default {
   name: 'LazyImage',
   props: {
-    src: {
+    id: {
+      type: [String, Number],
+      required: true
+    },
+    fileName: {
       type: String,
       required: true
     },
@@ -79,44 +84,48 @@ export default {
     const imageError = ref(false)
     const retryCount = ref(0)
     const maxRetries = 2
-    const currentSrc = ref(props.src)
+  const currentSrc = ref('')
     let observer = null
     let performanceEventId = null
 
     // 优化后的图片URL
     const optimizedSrc = computed(() => {
+      if (!currentSrc.value) return ''
       const options = {
         quality: props.priority === 'low' ? 'low' : props.priority === 'high' ? 'high' : 'medium',
         formatOptimization: true,
         qualityOptimization: true
       }
-      
       return optimizeImageUrl(currentSrc.value, options)
     })
 
     // 创建Intersection Observer
+    const fetchImageUrl = async () => {
+      try {
+        const url = await getMediaUrlNew(props.id, props.fileName, true)
+        currentSrc.value = url
+      } catch (e) {
+        currentSrc.value = ''
+      }
+    }
+
     const createObserver = () => {
       if (!window.IntersectionObserver) {
-        // 如果不支持IntersectionObserver，直接加载
         shouldLoad.value = true
+        fetchImageUrl()
         return
       }
-
       observer = new IntersectionObserver(
         (entries) => {
           entries.forEach(entry => {
             if (entry.isIntersecting || entry.intersectionRatio > 0) {
-              // 根据优先级决定加载延迟
               const delay = props.priority === 'high' ? 0 : 
                            props.priority === 'normal' ? 100 : 300
-              
-              setTimeout(() => {
+              setTimeout(async () => {
                 shouldLoad.value = true
-                // 开始性能监控
-                performanceEventId = imagePerformanceMonitor.startMonitoring(props.src)
+                await fetchImageUrl()
+                performanceEventId = imagePerformanceMonitor.startMonitoring(currentSrc.value)
               }, delay)
-              
-              // 开始加载后取消观察
               if (observer) {
                 observer.unobserve(entry.target)
                 observer = null
@@ -129,7 +138,6 @@ export default {
           threshold: 0.01
         }
       )
-
       if (containerRef.value) {
         observer.observe(containerRef.value)
       }
@@ -138,36 +146,31 @@ export default {
     const onImageLoad = () => {
       imageLoaded.value = true
       imageError.value = false
-      // 结束性能监控（成功）
       if (performanceEventId) {
         imagePerformanceMonitor.endMonitoring(performanceEventId, true)
       }
     }
 
-    const onImageError = () => {
+    const onImageError = async () => {
       retryCount.value++
       if (retryCount.value <= maxRetries) {
-        // 延迟重试
-        setTimeout(() => {
-          // 更新图片源触发重新加载
-          currentSrc.value = `${props.src}?retry=${retryCount.value}&t=${Date.now()}`
+        setTimeout(async () => {
+          await fetchImageUrl()
         }, 1000 * retryCount.value)
       } else {
         imageLoaded.value = false
         imageError.value = true
-        // 结束性能监控（失败）
         if (performanceEventId) {
           imagePerformanceMonitor.endMonitoring(performanceEventId, false)
         }
       }
     }
 
-    onMounted(() => {
+    onMounted(async () => {
       if (props.preload) {
-        // 如果启用预加载，直接开始加载
         shouldLoad.value = true
-        // 开始性能监控
-        performanceEventId = imagePerformanceMonitor.startMonitoring(props.src)
+        await fetchImageUrl()
+        performanceEventId = imagePerformanceMonitor.startMonitoring(currentSrc.value)
       } else {
         createObserver()
       }
@@ -179,15 +182,11 @@ export default {
       }
     })
 
-    const retryLoad = () => {
+    const retryLoad = async () => {
       imageError.value = false
       imageLoaded.value = false
-      
-      // 重新开始性能监控
-      performanceEventId = imagePerformanceMonitor.startMonitoring(props.src)
-      
-      // 更新当前图片源，添加重试参数
-      currentSrc.value = `${props.src}?retry=${retryCount.value}&t=${Date.now()}`
+      await fetchImageUrl()
+      performanceEventId = imagePerformanceMonitor.startMonitoring(currentSrc.value)
     }
 
     return {
