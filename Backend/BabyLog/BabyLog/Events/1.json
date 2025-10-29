@@ -1,0 +1,20 @@
+﻿{
+  "Id": 1,
+  "Title": "fdsf",
+  "Description": "",
+  "Media": {
+    "Images": [
+      {
+        "FileName": "20251029141445220_ipc5sb.jpg",
+        "Desc": "test.jpg",
+        "Hash": "464ECB3546CB359A",
+        "CaptureTime": "2025-10-14T01:43:41"
+      }
+    ],
+    "Videos": [],
+    "Audios": []
+  },
+  "Date": "2025-10-14",
+  "Location": "",
+  "IsDateValid": true
+}

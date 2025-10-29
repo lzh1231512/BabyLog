@@ -524,6 +524,13 @@ export default {
         next(false)
         return
       }
+      if (to.path == '/' && event.value?.id && to.query.highlight != event.value?.id) {
+        next({
+          path: '/',
+          query: { highlight: event.value.id }
+        })
+        return
+      }
       next()
     })
 
