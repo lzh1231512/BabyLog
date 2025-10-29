@@ -1,7 +1,7 @@
 // Video Player Service
 
 import { getEventById, getVideoURL, getMediaUrl } from '@/api/events';
-import { loadConfig } from '@/config';
+import { loadConfig , getBackendURL} from '@/config';
 import logger from '@/utils/videoLogger';
 
 /**
@@ -108,7 +108,7 @@ export default class VideoService {
       logger.success(`Video URL retrieved successfully`);
       return {
         success: true,
-        videoUrl: videoData.hlsUrl,
+        videoUrl: await getBackendURL() + videoData.hlsUrl,
         isTranscoded: videoData.isTranscoded
       };
     } catch (error) {
