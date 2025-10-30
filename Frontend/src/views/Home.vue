@@ -132,7 +132,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import dayjs from 'dayjs'
 import { getEventsList, getStats, getMediaUrl } from '@/api/events'
@@ -140,7 +140,6 @@ import LazyImage from '@/components/LazyImage.vue'
 import PerformancePanel from '@/components/PerformancePanel.vue'
 import { preloadEventImages } from '@/utils/imageUtils'
 import { adaptiveImageLoader } from '@/utils/imagePerformance'
-
 export default {
   name: 'HomePage',
   components: {
@@ -166,6 +165,7 @@ export default {
       
       if (totalMonths < 12) {
         // 计算准确的天数：当前日期减去这个月开始时对应的出生月日
+        
         const monthStart = birth.add(totalMonths, 'month')
         const days = now.diff(monthStart, 'day')
         
@@ -454,9 +454,18 @@ export default {
 
       return closestEvent.id
     }
-
+    // 禁止后退逻辑
+    const preventBack = () => {
+      window.history.pushState(null, '', window.location.href)
+      window.scrollTo({ top: 0, behavior: 'auto' }) 
+    }
+    onUnmounted(() => {
+      window.removeEventListener('popstate', preventBack)
+    })
     // 页面初始化
     onMounted(async () => {
+      window.history.pushState(null, '', window.location.href)
+      window.addEventListener('popstate', preventBack)
       await Promise.all([
         loadEventsList(),
         loadStats()
