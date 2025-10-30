@@ -1,7 +1,8 @@
 {
     "API_BASE_URLs": [
         { "url": "https://htpc.lzhsb.cc:4433", "priority": 1 },
-        { "url": "https://kt.lzhsb.cc:4433", "priority": 2 }
+        { "url": "https://kt.lzhsb.cc:4433", "priority": 2 },
+        { "url": "https://bblog.lzhsb.top", "priority": 2 }
     ],
     "BasePath": "/",
     "_BasePath_Comment": "BasePath 是应用的根路径，通常为 '/',如果应用部署在子路径下，请修改为对应的子路径,eg: '/myapp/'",
