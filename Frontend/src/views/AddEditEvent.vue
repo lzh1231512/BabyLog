@@ -344,7 +344,7 @@ export default {
       message: '',
       subtext: '',
       type: 'info',
-      duration: 4000
+      duration: 2000
     })
     
     const isEdit = computed(() => !!route.params.id)
@@ -549,7 +549,7 @@ export default {
         showSnackbar(`${mediaTypeText}上传成功`, {
           subtext: fileInfo.fileName,
           type: 'info',
-          duration: 2000
+          duration: 1000
         });
       } else {
         console.warn('文件上传完成但媒体类型未设置!');
@@ -580,7 +580,7 @@ export default {
           showSnackbar('已从媒体文件中检测到日期', {
             subtext: `事件日期已自动更新为: ${captureDate}`,
             type: 'success',
-            duration: 5000
+            duration: 1000
           });
         } catch (error) {
           console.error('无法解析捕获时间:', error);

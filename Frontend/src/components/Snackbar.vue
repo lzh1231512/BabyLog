@@ -121,7 +121,7 @@ export default {
 <style scoped>
 .snackbar {
   position: fixed;
-  bottom: 20px;
+  top: 100px;
   left: 50%;
   transform: translateX(-50%);
   min-width: 300px;
