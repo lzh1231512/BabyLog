@@ -1,17 +1,19 @@
-﻿using BabyLog.Models;
+﻿using BabyLog.Attributes;
+using BabyLog.Models;
+using FFMpegCore;
 using Microsoft.AspNetCore.Mvc;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Metadata.Profiles.Exif;
-using FFMpegCore;
 using IOFile = System.IO.File;
 
 namespace BabyLog.Controllers
 {
     [ApiController]
+    [APIAuthorize]
     [Route("api/[controller]")]
     public class ChunkController : ControllerBase
     {

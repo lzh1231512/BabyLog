@@ -1,3 +1,4 @@
+using BabyLog.Attributes;
 using BabyLog.Commons;
 using BabyLog.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -15,6 +16,7 @@ using System.Threading.Tasks;
 namespace BabyLog.Controllers
 {
     [ApiController]
+    [APIAuthorize]
     [Route("api/[controller]")]
     public class EventsController : ControllerBase
     {
@@ -59,18 +61,6 @@ namespace BabyLog.Controllers
                     Message = "获取事件列表失败"
                 });
             }
-        }
-
-        [HttpGet("/ok")]
-        public async Task<IActionResult> OK()
-        {
-            // 判断url是否是localhost，如果是的话，延迟0.3s
-            var host = HttpContext.Request.Host.Host;
-            if (host.Equals("localhost", StringComparison.OrdinalIgnoreCase))
-            {
-                await Task.Delay(300);
-            }
-            return Ok(new { Ok = "ojbk" });
         }
 
         //[HttpGet("test")]

@@ -5,6 +5,7 @@ import AddEditEvent from '../views/AddEditEvent.vue'
 import VideoPlayer from '../views/VideoPlayer.vue'
 import ChunkUploadDemo from '../views/ChunkUploadDemo.vue'
 import config from '../config'
+import { login } from '../api/events'; 
 const routes = [
   {
     path: '/',
@@ -36,6 +37,11 @@ const routes = [
     name: 'ChunkUploadDemo',
     component: ChunkUploadDemo
   }
+  ,{
+    path: '/login',
+    name: 'LoginPage',
+    component: () => import('../views/Login.vue')
+  }
 ]
 
 const router = createRouter({
@@ -50,5 +56,22 @@ const router = createRouter({
     return { top: 0 }
   }
 })
+
+router.beforeEach(async (to, from, next) => {
+  if (to.name === 'LoginPage') {
+    // 登录页不需要校验
+    return next();
+  }
+  try {
+    const isLoggedIn = await login();
+    if (isLoggedIn) {
+      next();
+    } else {
+      next({ name: 'LoginPage' });
+    }
+  } catch (e) {
+    next({ name: 'LoginPage' });
+  }
+});
 
 export default router

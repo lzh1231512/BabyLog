@@ -1,3 +1,4 @@
+using BabyLog.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.IO;
@@ -19,6 +20,7 @@ namespace BabyLog.Controllers
         }
 
         [HttpGet("check/{eventId}/{fileName}")]
+        [APIAuthorize]
         public IActionResult CheckVideoTranscoding(int eventId, string fileName)
         {
             try
@@ -58,5 +60,25 @@ namespace BabyLog.Controllers
                 });
             }
         }
+
+        [HttpGet("/ok")]
+        public async Task<IActionResult> OK()
+        {
+            // 判断url是否是localhost，如果是的话，延迟0.3s
+            var host = HttpContext.Request.Host.Host;
+            if (host.Equals("localhost", StringComparison.OrdinalIgnoreCase))
+            {
+                await Task.Delay(300);
+            }
+            return Ok(new { Ok = "ojbk" });
+        }
+
+        [APIAuthorize]
+        [HttpGet("/login")]
+        public async Task<IActionResult> Login()
+        {
+            return Ok(new { Ok = "ojbk" });
+        }
+
     }
 }
