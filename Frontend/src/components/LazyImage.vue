@@ -32,6 +32,7 @@
       :style="{ opacity: imageLoaded ? 1 : 0 }"
       loading="lazy"
     />
+    <slot></slot>
   </div>
 </template>
 

@@ -70,7 +70,9 @@
                 <span v-if="!video.fileName" class="video-icon">🎬</span>
               </div>
               <div class="video-overlay">
-                <span class="play-overlay">▶️</span>
+                <span class="play-overlay">
+                  <img src="@/assets/play-icon.svg" alt="播放" style="width: 40px; height: 40px;" />
+                </span>
                 <span class="video-duration" v-if="video.duration">{{ formatDuration(video.duration) }}</span>
               </div>
             </div>
