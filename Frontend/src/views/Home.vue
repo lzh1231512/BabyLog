@@ -526,15 +526,15 @@ export default {
 <style scoped>
 .home {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  padding: 20px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--color-background);
+  padding: var(--spacing);
+  font-family: var(--font-family-base);
 }
 
 /* 头部信息 */
 .header {
-  background: white;
-  border-radius: 20px;
+  background: var(--color-surface);
+  border-radius: var(--border-radius);
   padding: 25px;
   margin: 0 auto 30px auto;
   max-width: 800px;
@@ -552,7 +552,7 @@ export default {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+  background: var(--color-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -563,13 +563,13 @@ export default {
 .baby-name {
   font-size: 28px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--color-primary);
   margin: 0 0 5px 0;
 }
 
 .baby-age {
   font-size: 16px;
-  color: #7f8c8d;
+  color: var(--color-text-light);
   margin: 0;
 }
 
@@ -587,15 +587,11 @@ export default {
 .stat-number {
   font-size: 32px;
   font-weight: 700;
-  color: #e74c3c;
+  color: var(--color-error);
   line-height: 1;
 }
 
-.stat-label {
-  font-size: 14px;
-  color: #7f8c8d;
-  margin-top: 5px;
-}
+/* ...existing code... */
 
 
 

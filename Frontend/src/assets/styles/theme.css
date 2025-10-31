@@ -1,0 +1,41 @@
+/* 主题色变量，可根据实际需求调整 */
+:root {
+  --color-primary: #4A90E2;
+  --color-secondary: #50E3C2;
+  --color-background: #F5F7FA;
+  --color-surface: #FFFFFF;
+  --color-text: #333333;
+  --color-text-light: #888888;
+  --color-error: #E94F4F;
+  --font-family-base: 'Segoe UI', 'PingFang SC', 'Hiragino Sans', 'Arial', sans-serif;
+  --border-radius: 8px;
+  --spacing: 16px;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-family-base);
+}
+
+.button {
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: var(--border-radius);
+  padding: 8px 24px;
+  border: none;
+  cursor: pointer;
+}
+
+.card {
+  background: var(--color-surface);
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  padding: var(--spacing);
+}
+
+.text-secondary {
+  color: var(--color-text-light);
+}
+
+/* 更多样式可按需扩展 */

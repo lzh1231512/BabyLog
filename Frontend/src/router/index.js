@@ -2,8 +2,6 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import EventDetail from '../views/EventDetail.vue'
 import AddEditEvent from '../views/AddEditEvent.vue'
-import VideoPlayer from '../views/VideoPlayer.vue'
-import ChunkUploadDemo from '../views/ChunkUploadDemo.vue'
 import config from '../config'
 import { login } from '../api/events'; 
 const routes = [
@@ -28,16 +26,6 @@ const routes = [
     component: AddEditEvent
   },
   {
-    path: '/video-player/:id/:videoIndex?',
-    name: 'VideoPlayer',
-    component: VideoPlayer
-  },
-  {
-    path: '/chunk-upload',
-    name: 'ChunkUploadDemo',
-    component: ChunkUploadDemo
-  }
-  ,{
     path: '/login',
     name: 'LoginPage',
     component: () => import('../views/Login.vue')

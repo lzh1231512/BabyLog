@@ -11,6 +11,9 @@ export default {
 </script>
 
 <style>
+@import './assets/styles/theme.css';
+@import './assets/styles/videoPlayer.css';
+
 * {
   margin: 0;
   padding: 0;
@@ -21,7 +24,7 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f5f7fa;
+  background-color: var(--color-background);
 }
 
 #app {

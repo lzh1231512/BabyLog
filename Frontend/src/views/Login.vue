@@ -42,17 +42,18 @@ export default {
 </script>
 
 <style scoped>
+@import '../assets/styles/theme.css';
 .login-container {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: var(--color-background);
 }
 .login-form {
-  background: #fff;
+  background: var(--color-surface);
   padding: 32px 24px;
-  border-radius: 16px;
+  border-radius: var(--border-radius);
   box-shadow: 0 8px 32px rgba(0,0,0,0.08);
   display: flex;
   flex-direction: column;
@@ -64,11 +65,27 @@ export default {
   font-weight: 600;
   margin-bottom: 24px;
   text-align: center;
-  color: #2c3e50;
+  color: var(--color-primary);
 }
 .password-input {
   padding: 12px;
   font-size: 16px;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-text-light);
+  margin-bottom: 20px;
+}
+.login-btn {
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: var(--border-radius);
+  border: none;
+  padding: 12px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.login-btn:hover {
+  background: var(--color-secondary);
   border-radius: 8px;
   border: 1px solid #bdc3c7;
   margin-bottom: 20px;
@@ -90,7 +107,11 @@ export default {
   transition: background 0.2s;
 }
 .login-btn:hover {
-  background: linear-gradient(135deg, #5a6c7d 0%, #764ba2 100%);
+  background: var(--color-secondary);
+}
+
+.password-input:focus {
+  border-color: var(--color-primary);
 }
 @media (max-width: 480px) {
   .login-form {

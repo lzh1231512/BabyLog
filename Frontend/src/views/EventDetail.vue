@@ -582,11 +582,12 @@ export default {
 </script>
 
 <style scoped>
+@import '../assets/styles/theme.css';
 .event-detail {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  padding: 20px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--color-background);
+  padding: var(--spacing);
+  font-family: var(--font-family-base);
 }
 
 /* 头部 */
@@ -600,14 +601,15 @@ export default {
 }
 
 .back-btn {
-  background: rgba(65, 105, 225, 0.7);
+  background: var(--color-primary);
   border: none;
   padding: 10px 15px;
-  border-radius: 10px;
+  border-radius: var(--border-radius);
   cursor: pointer;
   font-size: 16px;
   margin-right: 20px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  color: #fff;
   transition: transform 0.2s ease;
 }
 
@@ -618,7 +620,7 @@ export default {
 .page-title {
   font-size: 24px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--color-primary);
   margin: 0;
 }
 
@@ -626,8 +628,8 @@ export default {
 .event-container {
   max-width: 800px;
   margin: 0 auto;
-  background: white;
-  border-radius: 20px;
+  background: var(--color-surface);
+  border-radius: var(--border-radius);
   padding: 30px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
@@ -640,7 +642,7 @@ export default {
 .event-title {
   font-size: 28px;
   font-weight: 700;
-  color: #2c3e50;
+  color: var(--color-primary);
   margin: 0 0 15px 0;
 }
 
