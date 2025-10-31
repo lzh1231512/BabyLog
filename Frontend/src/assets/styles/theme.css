@@ -1,14 +1,14 @@
 /* 主题色变量，可根据实际需求调整 */
 :root {
-  --color-primary: #4A90E2;
-  --color-secondary: #50E3C2;
-  --color-background: #F5F7FA;
-  --color-surface: #FFFFFF;
-  --color-text: #333333;
-  --color-text-light: #888888;
-  --color-error: #E94F4F;
+  --color-primary: #FFB6C1;       /* 柔和粉色，主色，温馨可爱 */
+  --color-secondary: #AEEEEE;     /* 浅青色，辅助色，清新柔和 */
+  --color-background: #FFF8F0;    /* 奶白色背景，温暖柔和 */
+  --color-surface: #FFFFFF;       /* 纯白表面，保持简洁 */
+  --color-text: #444444;          /* 深灰正文，舒适阅读 */
+  --color-text-light: #999999;    /* 浅灰辅助文字 */
+  --color-error: #FF6F61;         /* 柔和红色，错误提示 */
   --font-family-base: 'Segoe UI', 'PingFang SC', 'Hiragino Sans', 'Arial', sans-serif;
-  --border-radius: 8px;
+  --border-radius: 12px;          /* 更圆润，贴合婴儿风格 */
   --spacing: 16px;
 }
 
