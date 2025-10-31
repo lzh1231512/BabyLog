@@ -98,7 +98,13 @@
                       'small': getAllMediaItems(event).length > 1,
                       'video-thumbnail': image.type === 'video'
                     }"
-                  />
+                  >
+                    <template v-if="image.type === 'video'">
+                      <span class="video-play-icon">
+                        <img src="@/assets/play-icon.svg" alt="播放" style="width:30px;height:30px;" />
+                      </span>
+                    </template>
+                  </LazyImage>
                   <div v-if="getAllMediaItems(event).length > 4" class="more-photos">
                     +{{ getAllMediaItems(event).length - 4 }}
                   </div>
@@ -769,21 +775,18 @@ export default {
   position: relative;
 }
 
-.photo-item.video-thumbnail::after {
-  content: '▶️';
+.video-play-icon {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
+  background: rgba(0,0,0,0.7);
+  border-radius: 50%;
   width: 30px;
   height: 30px;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
   pointer-events: none;
 }
 

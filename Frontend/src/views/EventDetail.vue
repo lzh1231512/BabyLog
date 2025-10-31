@@ -92,7 +92,9 @@
               <button class="play-btn" @click="toggleAudio(audio, index)">
                 <span v-if="currentPlayingAudio === index && isAudioPlaying">⏸️</span>
                 <span v-else-if="currentPlayingAudio === index && isAudioLoading">⏳</span>
-                <span v-else>▶️</span>
+                <span class="play-overlay">
+                  <img src="@/assets/play-icon.svg" alt="播放" style="width: 40px; height: 40px;" />
+                </span>
               </button>
               <div class="audio-info">
                 <span class="audio-desc">{{ audio.desc }}</span>
