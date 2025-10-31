@@ -101,7 +101,10 @@
                   >
                     <template v-if="image.type === 'video'">
                       <span class="video-play-icon">
-                        <img src="@/assets/play-icon.svg" alt="播放" style="width:30px;height:30px;" />
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+                          <circle cx="24" cy="24" r="22" fill="#FFB6C1"/>
+                          <polygon points="18,14 34,24 18,34" fill="#FFFFFF"/>
+                        </svg>
                       </span>
                     </template>
                   </LazyImage>
@@ -789,7 +792,9 @@ export default {
   justify-content: center;
   pointer-events: none;
 }
-
+.video-play-icon circle{
+fill:var(--color-secondary);
+}
 .more-photos {
   position: absolute;
   bottom: 15px;

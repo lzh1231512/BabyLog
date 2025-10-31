@@ -71,7 +71,10 @@
               </div>
               <div class="video-overlay">
                 <span class="play-overlay">
-                  <img src="@/assets/play-icon.svg" alt="播放" style="width: 40px; height: 40px;" />
+                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+                    <circle cx="24" cy="24" r="22" fill="#FFB6C1"/>
+                    <polygon points="18,14 34,24 18,34" fill="#FFFFFF"/>
+                  </svg>
                 </span>
                 <span class="video-duration" v-if="video.duration">{{ formatDuration(video.duration) }}</span>
               </div>
@@ -95,7 +98,10 @@
                 <span v-if="currentPlayingAudio === index && isAudioPlaying">⏸️</span>
                 <span v-else-if="currentPlayingAudio === index && isAudioLoading">⏳</span>
                 <span class="play-overlay">
-                  <img src="@/assets/play-icon.svg" alt="播放" style="width: 40px; height: 40px;" />
+                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+                    <circle cx="24" cy="24" r="22" fill="#FFB6C1"/>
+                    <polygon points="18,14 34,24 18,34" fill="#FFFFFF"/>
+                  </svg>
                 </span>
               </button>
               <div class="audio-info">
@@ -782,7 +788,9 @@ export default {
   justify-content: center;
   transition: background 0.3s ease;
 }
-
+circle{
+  fill:var(--color-secondary);
+}
 .video-container:hover .video-overlay {
   background: rgba(0, 0, 0, 0.5);
 }
