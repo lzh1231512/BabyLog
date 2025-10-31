@@ -664,7 +664,7 @@ export default {
 }
 
 .event-date {
-  color: #e74c3c;
+  color: var(--color-text-highlight);
   font-weight: 600;
 }
 

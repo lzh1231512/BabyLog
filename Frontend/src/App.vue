@@ -6,7 +6,28 @@
 
 <script>
 export default {
-  name: 'BabyLogApp'
+  name: 'BabyLogApp',
+  data() {
+    return {
+      currentTheme: 'light'
+    }
+  },
+  created() {
+    const saved = localStorage.getItem('babylog-theme') || 'light'
+    this.applyTheme(saved)
+  },
+  methods: {
+    applyTheme(theme) {
+      this.currentTheme = theme
+      document.documentElement.setAttribute('data-theme', theme)
+      localStorage.setItem('babylog-theme', theme)
+    },
+    toggleTheme() {
+      // 这里示例在 light <-> warm 之间切换，按需改成更多状态或循环
+      const next = this.currentTheme === 'light' ? 'warm' : 'light'
+      this.applyTheme(next)
+    }
+  }
 }
 </script>
 

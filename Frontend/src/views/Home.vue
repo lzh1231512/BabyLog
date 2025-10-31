@@ -3,12 +3,35 @@
     <!-- 头部信息 -->
     <header class="header">
       <div class="baby-info">
-        <div class="avatar">👶</div>
-        <div class="info">
-          <h1 class="baby-name">刘知许小朋友</h1>
-          <p class="baby-age">{{ currentAge }}</p>
+        <!-- 设置图标（右上角） -->
+        <div class="settings">
+          <button
+            class="settings-btn"
+            @click.stop="showThemePopup = !showThemePopup"
+            aria-label="设置"
+            title="设置"
+          >⚙️</button>
+
+          <div v-if="showThemePopup" class="settings-popup" @click.stop>
+            <label class="popup-label">主题：</label>
+            <select v-model="currentThemeLocal" @change="onThemeChange" class="theme-select">
+              <option value="light">浅色 (light)</option>
+              <option value="warm">暖色 (warm)</option>
+              <option value="beige">柔和米色 (beige)</option>
+              <option value="babyblue">婴儿蓝 (babyblue)</option>
+              <option value="peach">柔粉橘 (peach)</option>
+            </select>
+            <div class="popup-actions">
+              <button class="btn-apply" @click="applyTheme(currentThemeLocal)">应用</button>
+            </div>
+          </div>
         </div>
-      </div>
+         <div class="avatar">👶</div>
+         <div class="info">
+           <h1 class="baby-name">刘知许小朋友</h1>
+           <p class="baby-age">{{ currentAge }}</p>
+         </div>
+       </div>
       <div class="stats">
         <div class="stat-item">
           <div class="stat-number">{{ totalEvents }}</div>
@@ -222,6 +245,16 @@ export default {
       totalVideos: 0,
       totalAudios: 0
     })
+    const currentTheme = ref('light')
+    const showThemePopup = ref(false)
+    const currentThemeLocal = ref('light')
+
+    const applyTheme = (theme) => {
+      currentTheme.value = theme
+      document.documentElement.setAttribute('data-theme', theme)
+      localStorage.setItem('babylog-theme', theme)
+      showThemePopup.value = false
+    }
 
     // 获取自适应加载策略
     const loadingStrategy = adaptiveImageLoader.getLoadingStrategy()
@@ -526,7 +559,10 @@ export default {
       getImagePriority,
       getAllMediaItems,
       shouldShowEventDate,
-      loadingStrategy
+      loadingStrategy,
+      showThemePopup,
+      currentThemeLocal,
+      applyTheme
     }
   }
 }
@@ -555,6 +591,81 @@ export default {
   display: flex;
   align-items: center;
   margin-bottom: 20px;
+  position: relative; /* 增加定位上下文，允许 settings 绝对定位到右上角 */
+}
+
+.settings {
+  position: absolute;
+  top: 8px;    /* 右上内边距，可按需微调 */
+  right: 8px;  /* 右侧内边距，可按需微调 */
+  z-index: 50;
+  margin-left: 0; /* 清除原先的自动左边距 */
+}
+
+.settings-btn {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 18px;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.settings-btn:hover {
+  color: var(--color-secondary);
+}
+
+.settings-popup {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 15px;
+  z-index: 100;
+  width: 200px;
+}
+
+.popup-label {
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.theme-select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #bdc3c7;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #333;
+  background: #f8f9fa;
+  margin-bottom: 15px;
+}
+
+.btn-apply, .btn-cancel {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s ease;
+}
+
+.btn-apply:hover {
+  background: linear-gradient(135deg, #2980b9 0%, #3498db 100%);
+}
+
+.btn-cancel {
+  background: #e74c3c;
+}
+
+.btn-cancel:hover {
+  background: #c0392b;
 }
 
 .avatar {
@@ -596,7 +707,7 @@ export default {
 .stat-number {
   font-size: 32px;
   font-weight: 700;
-  color: var(--color-error);
+  color: var(--color-text-highlight);
   line-height: 1;
 }
 
