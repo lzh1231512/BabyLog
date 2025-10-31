@@ -23,7 +23,6 @@ namespace BabyLog.Controllers
     [Route("api/[controller]")]
     [RequestSizeLimit(long.MaxValue)]
     [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
-    [APIAuthorize]
     public partial class FilesController : ControllerBase
     {
         private readonly ILogger<FilesController> _logger;
