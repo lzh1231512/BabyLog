@@ -5,7 +5,7 @@
       <button class="back-btn" @click="goBack">
         ← 返回
       </button>
-      <h1 class="page-title">事件详情</h1>
+      <h1 class="page-title"></h1>
     </header>
 
     <!-- 加载状态 -->

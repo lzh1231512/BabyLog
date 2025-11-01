@@ -363,8 +363,8 @@ namespace BabyLog.Controllers
         /// </summary>
         [HttpPost("upload")]
         [DisableRequestSizeLimit]
-        [RequestSizeLimit(long.MaxValue)]
-        [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
+        [RequestSizeLimit(1073741824)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 1073741824)]
         public async Task<IActionResult> UploadChunk([FromQuery] string taskId, [FromQuery] int chunkIndex)
         {
             try

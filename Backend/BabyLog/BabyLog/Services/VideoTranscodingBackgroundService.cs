@@ -39,11 +39,11 @@ namespace BabyLog.Services
                 {
                     return;
                 }
-                isRunding= true;
+                isRunding = true;
                 _logger.LogInformation("Starting video transcoding task processing");
-                
+
                 var tasksDir = Path.Combine(_env.ContentRootPath, "Tasks");
-                
+
                 // Ensure tasks directory exists
                 if (!Directory.Exists(tasksDir))
                 {
@@ -64,7 +64,7 @@ namespace BabyLog.Services
                 foreach (var taskFile in taskFiles)
                 {
                     var fileName = Path.GetFileName(taskFile);
-                    
+
                     // Parse task filename to get event ID and video filename
                     // Format: [id]_[FileName]
                     var match = Regex.Match(fileName, @"^(\d+)_(.+)$");
@@ -109,7 +109,10 @@ namespace BabyLog.Services
                 _logger.LogError(ex, "Error processing video transcoding tasks");
                 throw; // Let Hangfire retry
             }
-            isRunding = false;
+            finally 
+            { 
+                isRunding = false;
+            }
         }
         
         [AutomaticRetry(Attempts = 0)] // Don't retry this job

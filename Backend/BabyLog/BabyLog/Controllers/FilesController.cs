@@ -21,8 +21,8 @@ namespace BabyLog.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [RequestSizeLimit(long.MaxValue)]
-    [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
+    [RequestSizeLimit(1073741824)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 1073741824)]
     public partial class FilesController : ControllerBase
     {
         private readonly ILogger<FilesController> _logger;

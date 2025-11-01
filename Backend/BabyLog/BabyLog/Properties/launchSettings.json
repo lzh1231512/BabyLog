@@ -8,8 +8,8 @@
       "applicationUrl": "http://localhost:5099",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ASPNETCORE_MaxRequestBodySize": "9223372036854775807",
-        "ASPNETCORE_HTTP_UPLOAD_LIMIT": "9223372036854775807",
+        "ASPNETCORE_MaxRequestBodySize": "1073741824",
+        "ASPNETCORE_HTTP_UPLOAD_LIMIT": "1073741824",
         "ASPNETCORE_KeepAliveTimeout": "600",
         "ASPNETCORE_RequestHeadersTimeout": "300",
         "ASPNETCORE_ENABLE_REQUEST_BODY_BUFFERING": "false",

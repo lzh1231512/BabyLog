@@ -70,7 +70,7 @@ namespace BabyLog
                 // Configure IIS options for larger file uploads
                 builder.Services.Configure<IISServerOptions>(options =>
                 {
-                    options.MaxRequestBodySize = int.MaxValue; // Unlimited
+                    options.MaxRequestBodySize = 1073741824; // Unlimited
                 });
 
                 // Configure MVC options for larger file uploads
@@ -82,11 +82,11 @@ namespace BabyLog
                 // Configure form options for handling large files
                 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
                 {
-                    options.ValueLengthLimit = int.MaxValue;
-                    options.MultipartBodyLengthLimit = long.MaxValue; // Use long.MaxValue instead of int.MaxValue
-                    options.MultipartHeadersLengthLimit = int.MaxValue;
-                    options.BufferBodyLengthLimit = long.MaxValue; // Use long.MaxValue instead of int.MaxValue
-                    options.MemoryBufferThreshold = int.MaxValue;
+                    options.ValueLengthLimit = 1073741824;
+                    options.MultipartBodyLengthLimit = 1073741824; // Use long.MaxValue instead of int.MaxValue
+                    options.MultipartHeadersLengthLimit = 1073741824;
+                    options.BufferBodyLengthLimit = 1073741824; // Use long.MaxValue instead of int.MaxValue
+                    options.MemoryBufferThreshold = 1073741824;
                 });
 
                 builder.Services.AddControllers(options => {
@@ -131,7 +131,7 @@ namespace BabyLog
                 builder.WebHost.ConfigureKestrel(options =>
                 {
                     // Set the limits for the server as a whole
-                    options.Limits.MaxRequestBodySize = long.MaxValue; // Unlimited
+                    options.Limits.MaxRequestBodySize = 1073741824; // Unlimited
                     options.Limits.MinRequestBodyDataRate = null; // Remove minimum data rate
                     options.Limits.MaxResponseBufferSize = 1024 * 1024 * 100; // 100MB response buffer
                     options.Limits.MaxRequestBufferSize = 1024 * 1024 * 100; // 100MB request buffer
