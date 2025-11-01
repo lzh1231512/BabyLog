@@ -3,29 +3,6 @@
     <!-- 头部信息 -->
     <header class="header">
       <div class="baby-info">
-        <!-- 设置图标（右上角） -->
-        <div class="settings">
-          <button
-            class="settings-btn"
-            @click.stop="showThemePopup = !showThemePopup"
-            aria-label="设置"
-            title="设置"
-          >⚙️</button>
-
-          <div v-if="showThemePopup" class="settings-popup" @click.stop>
-            <label class="popup-label">主题：</label>
-            <select v-model="currentThemeLocal" @change="onThemeChange" class="theme-select">
-              <option value="light">浅色 (light)</option>
-              <option value="warm">暖色 (warm)</option>
-              <option value="beige">柔和米色 (beige)</option>
-              <option value="babyblue">婴儿蓝 (babyblue)</option>
-              <option value="peach">柔粉橘 (peach)</option>
-            </select>
-            <div class="popup-actions">
-              <button class="btn-apply" @click="applyTheme(currentThemeLocal)">应用</button>
-            </div>
-          </div>
-        </div>
          <div class="avatar">👶</div>
          <div class="info">
            <h1 class="baby-name">刘知许小朋友</h1>
@@ -124,10 +101,6 @@
                   >
                     <template v-if="image.type === 'video'">
                       <span class="video-play-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
-                          <circle cx="24" cy="24" r="22" fill="#FFB6C1"/>
-                          <polygon points="18,14 34,24 18,34" fill="#FFFFFF"/>
-                        </svg>
                       </span>
                     </template>
                   </LazyImage>
@@ -245,16 +218,6 @@ export default {
       totalVideos: 0,
       totalAudios: 0
     })
-    const currentTheme = ref('light')
-    const showThemePopup = ref(false)
-    const currentThemeLocal = ref('light')
-
-    const applyTheme = (theme) => {
-      currentTheme.value = theme
-      document.documentElement.setAttribute('data-theme', theme)
-      localStorage.setItem('babylog-theme', theme)
-      showThemePopup.value = false
-    }
 
     // 获取自适应加载策略
     const loadingStrategy = adaptiveImageLoader.getLoadingStrategy()
@@ -560,9 +523,6 @@ export default {
       getAllMediaItems,
       shouldShowEventDate,
       loadingStrategy,
-      showThemePopup,
-      currentThemeLocal,
-      applyTheme
     }
   }
 }
@@ -632,17 +592,6 @@ export default {
   color: #333;
   margin-bottom: 10px;
   display: block;
-}
-
-.theme-select {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #bdc3c7;
-  border-radius: 4px;
-  font-size: 14px;
-  color: #333;
-  background: #f8f9fa;
-  margin-bottom: 15px;
 }
 
 .btn-apply, .btn-cancel {
@@ -862,49 +811,92 @@ export default {
     box-shadow: 0 0 20px rgba(52, 152, 219, 0.3);
   }
 }
-
 .event-photos {
-  height: 150px;
   background: #f8f9fa;
   position: relative;
   display: flex;
   flex-wrap: wrap;
   padding: 10px;
   gap: 5px;
+  align-items: flex-start; /* 保证多张小图顶端对齐，避免中间留空 */
+  min-height: 65px;        /* 保持最小高度 */
+  /* 不再使用固定高度，这样 event-info 会紧贴图片区域 */
 }
 
+/* 默认单图或首张图占据较高的展示空间 */
 .photo-item {
-  flex: 1;
-  min-height: 60px;
+  flex: 1 1 100%;     /* 默认占据整行 */
+  height: 150px;      /* 单张图的展示高度 */
   border-radius: 8px;
   overflow: hidden;
+  display: block;
 }
 
+/* 多张图片时使用小缩略图布局（两列） */
 .photo-item.small {
-  max-width: 48%;
+  flex: 0 1 calc(50% - 5px); /* 两列布局，减去 gap */
+  height: 65px;
   max-height: 65px;
 }
 
+/* 确保图片内容填满缩略框且保持裁剪（不留空白） */
+.photo-item img,
+.photo-item picture,
+.photo-item > * {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* 保持视频缩略图覆盖图标样式不变 */
 .photo-item.video-thumbnail {
   position: relative;
 }
-
-.video-play-icon {
+.video-play-icon{
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(0,0,0,0.7);
-  border-radius: 50%;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 64px;   /* 放大图标 */
+  height: 64px;
+  display: inline-block;
   pointer-events: none;
+  color: rgba(255,255,255,0.95); /* 使用 currentColor 控制亮度 */
 }
-.video-play-icon circle{
-fill:var(--color-secondary);
+
+/* 如果模板里仍有 SVG，隐藏它（保留模板不变） */
+.video-play-icon svg { display: none !important; }
+
+/* 半透明圆形底色（可选） */
+.video-play-icon::after{
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.3;
+  z-index: 0;
+}
+
+/* 右指向的清晰三角（CSS 三角形） */
+.video-play-icon::before{
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-40%, -50%); /* 微调使三角视觉上居中 */
+  z-index: 1;
+  width: 0;
+  height: 0;
+  border-top: 18px solid transparent;
+  border-bottom: 18px solid transparent;
+  border-left: 30px solid currentColor; /* 三角大小与透明度 */
+  opacity: 0.85;
 }
 .more-photos {
   position: absolute;

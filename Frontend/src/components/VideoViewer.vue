@@ -39,10 +39,6 @@
           </div>
         </div>
         
-        <!-- Video info -->
-        <div class="video-info">
-          <h2 class="video-title">{{ currentVideo?.desc || '' }}</h2>
-        </div>
       </div>
     </div>
   </div>

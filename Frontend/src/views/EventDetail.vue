@@ -71,10 +71,6 @@
               </div>
               <div class="video-overlay">
                 <span class="play-overlay">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
-                    <circle cx="24" cy="24" r="22" fill="#FFB6C1"/>
-                    <polygon points="18,14 34,24 18,34" fill="#FFFFFF"/>
-                  </svg>
                 </span>
                 <span class="video-duration" v-if="video.duration">{{ formatDuration(video.duration) }}</span>
               </div>
@@ -97,12 +93,7 @@
               <button class="play-btn" @click="toggleAudio(audio, index)">
                 <span v-if="currentPlayingAudio === index && isAudioPlaying">⏸️</span>
                 <span v-else-if="currentPlayingAudio === index && isAudioLoading">⏳</span>
-                <span class="play-overlay">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
-                    <circle cx="24" cy="24" r="22" fill="#FFB6C1"/>
-                    <polygon points="18,14 34,24 18,34" fill="#FFFFFF"/>
-                  </svg>
-                </span>
+                <span v-else>▶️</span>
               </button>
               <div class="audio-info">
                 <span class="audio-desc">{{ audio.desc }}</span>
@@ -141,7 +132,7 @@
       </div>
 
       <!-- 事件描述 -->
-      <div class="description-section">
+      <div class="description-section" v-if="event.description">
         <h3 class="section-title">详细描述</h3>
         <p class="event-description">{{ event.description }}</p>
       </div>
@@ -151,10 +142,6 @@
         <div class="info-item" v-if="event.location">
           <span class="info-label">地点:</span>
           <span class="info-value">{{ event.location }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">记录时间:</span>
-          <span class="info-value">{{ formatDateTime(event.date) }}</span>
         </div>
       </div>
 
@@ -611,7 +598,7 @@ export default {
 }
 
 .back-btn {
-  background: var(--color-primary);
+  background: rgba(65, 105, 225, 0.7);
   border: none;
   padding: 10px 15px;
   border-radius: var(--border-radius);
@@ -782,17 +769,10 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background 0.3s ease;
-}
-circle{
-  fill:var(--color-secondary);
-}
-.video-container:hover .video-overlay {
-  background: rgba(0, 0, 0, 0.5);
 }
 
 .play-overlay {
@@ -801,9 +781,47 @@ circle{
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   transition: transform 0.3s ease;
 }
+.play-overlay{
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 64px;   /* 放大图标 */
+  height: 64px;
+  display: inline-block;
+  pointer-events: none;
+  color: rgba(255,255,255,0.95); /* 使用 currentColor 控制亮度 */
+}
 
-.video-container:hover .play-overlay {
-  transform: scale(1.2);
+/* 半透明圆形底色（可选） */
+.play-overlay::after{
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.3;
+  z-index: 0;
+}
+
+/* 右指向的清晰三角（CSS 三角形） */
+.play-overlay::before{
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-40%, -50%); /* 微调使三角视觉上居中 */
+  z-index: 1;
+  width: 0;
+  height: 0;
+  border-top: 18px solid transparent;
+  border-bottom: 18px solid transparent;
+  border-left: 30px solid currentColor; /* 三角大小与透明度 */
+  opacity: 0.85;
 }
 
 .video-duration {
